@@ -19,6 +19,25 @@ from simlingo_training.utils.custom_types import DrivingExample
 _STEPS_TO_FIRST_IDX: Dict[int, int] = {}
 
 
+def _autocast_dtype(pl_module: pl.LightningModule) -> torch.dtype:
+    """Match the autocast dtype to the LM backbone's actual param dtype.
+
+    train_local.py casts the language-model backbone to the Trainer's
+    compute dtype (fp16 or bf16) for Flash Attention 2, while the vision
+    encoder stays fp32 and relies on autocast to bridge the two. Hardcoding
+    fp16 here (the old default) mismatches bf16 runs and crashes with a
+    dtype-mismatch when merging vision and language embeddings.
+    """
+    language_model = getattr(pl_module, "language_model", None)
+    backbone = getattr(language_model, "model", None)
+    if backbone is not None:
+        try:
+            return next(backbone.parameters()).dtype
+        except StopIteration:
+            pass
+    return torch.float16
+
+
 def get_1d_wps(wps):
     waypoints_1d = [np.linalg.norm(wps[i+1] - wps[i]) for i in range(len(wps)-1)]
     # cumsum to get the distance from the start
@@ -94,7 +113,7 @@ class VisualiseCallback(Callback):
             return
 
         print("Validation visualization!")
-        with torch.cuda.amp.autocast(enabled=True):
+        with torch.autocast(device_type="cuda", dtype=_autocast_dtype(pl_module), enabled=True):
             # Forward with sampling
             # waypoints, route, target_speed, language = pl_module.forward(batch, return_language=True)
             speed_wps, route, language = pl_module.forward(batch, return_language=True)
@@ -129,7 +148,7 @@ class VisualiseCallback(Callback):
         if trainer.global_step % self.interval != 0:
             return
 
-        with torch.cuda.amp.autocast(enabled=True):
+        with torch.autocast(device_type="cuda", dtype=_autocast_dtype(pl_module), enabled=True):
             # Forward with sampling
             speed_wps, route, language = pl_module.forward(batch, return_language=True)
 
