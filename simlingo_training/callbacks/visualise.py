@@ -1,5 +1,6 @@
 import textwrap
 from functools import wraps
+from pathlib import Path
 from typing import Any, Callable, Dict
 
 import matplotlib
@@ -12,9 +13,10 @@ from PIL import Image, ImageDraw, ImageFont
 from pytorch_lightning import Callback, LightningModule, Trainer
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.utilities import rank_zero_only
-from hydra.utils import get_original_cwd
 
 from simlingo_training.utils.custom_types import DrivingExample
+
+_FONT_PATH = Path(__file__).resolve().parents[2] / "arial.ttf"
 
 _STEPS_TO_FIRST_IDX: Dict[int, int] = {}
 
@@ -195,7 +197,6 @@ def fig_to_np(fig):
 @torch.no_grad()
 def visualise_waypoints(batch: DrivingExample, waypoints, route=False, language_pred=None):
     assert batch.driving_label is not None
-    repo_root = get_original_cwd()
     n = 11
     if route:
         n = 20
@@ -236,9 +237,9 @@ def visualise_waypoints(batch: DrivingExample, waypoints, route=False, language_
             lines_wrap = len(textwrap.wrap(wrapped_text, width=80))
             lines_wrap_pred = len(textwrap.wrap(wrapped_pred_text, width=80))
         
-            white_draw.text((10, y_curr), f'{i} GT: {wrapped_text}', fill="black", font=ImageFont.truetype(f"{repo_root}/simlingo_training/arial.ttf", 20))
+            white_draw.text((10, y_curr), f'{i} GT: {wrapped_text}', fill="black", font=ImageFont.truetype(str(_FONT_PATH), 20))
             y_curr += 20*lines_wrap
-            white_draw.text((10, y_curr), f'{i} Pred: {wrapped_pred_text}', fill="black", font=ImageFont.truetype(f"{repo_root}/simlingo_training/arial.ttf", 20))
+            white_draw.text((10, y_curr), f'{i} Pred: {wrapped_pred_text}', fill="black", font=ImageFont.truetype(str(_FONT_PATH), 20))
             y_curr += 20*lines_wrap_pred + 20
         ax = fig.add_subplot(rows, cols, i + 1)
         # Predicted waypoints
