@@ -105,6 +105,7 @@ class DrivingDataModuleConfig:
 
     batch_size: int = 16
     num_workers: int = 10
+    persistent_workers: bool = True
     
     train_partitions: Optional[Dict[str, float]] = None
     train_partitions_dreamer: Optional[Dict[str, float]] = None

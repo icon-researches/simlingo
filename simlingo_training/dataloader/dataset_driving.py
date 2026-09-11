@@ -218,14 +218,14 @@ class Data_Driving(BaseDataset):  # pylint: disable=locally-disabled, invalid-na
                             if q_distance:
                                 qa_question = qa_question.replace('<DISTANCE>', q_distance.group(1))
                         else:
-                            print(f"WARNING: {qa_question} not in q_augment. Using default question.")
+                            # print(f"WARNING: {qa_question} not in q_augment. Using default question.")
                             qa_question = qa_question_org
                         if qa_answer in self.a_augment:
                             qa_answer = random.choice(self.a_augment[qa_answer]).replace('<OBJECT>', a_objects[0]).replace('<LOCATION>', a_location)
                             if a_distance:
                                 qa_answer = qa_answer.replace('<DISTANCE>', a_distance.group(1))
                         else:
-                            print(f"WARNING: {qa_answer} not in a_augment. Using default answer.")
+                            # print(f"WARNING: {qa_answer} not in a_augment. Using default answer.")
                             qa_answer = qa_answer_org
 
         ######################################################

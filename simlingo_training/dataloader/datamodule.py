@@ -88,7 +88,7 @@ class DataModule(LightningDataModule):
         # TODO: not needed anymore?
         self.tokenizer.add_special_tokens(
             {
-                "additional_special_tokens": [
+                "extra_special_tokens": [
                     "<WAYPOINTS>",
                     "<WAYPOINTS_DIFF>",
                     "<ORG_WAYPOINTS_DIFF>",
@@ -497,7 +497,7 @@ class DataModule(LightningDataModule):
         pass
 
 
-@hydra.main(config_path=f"../config", config_name="config", version_base="1.1")
+@hydra.main(config_path="../config", config_name="config", version_base="1.3")
 def test(cfg):
 
     get_waypoint_stats = True

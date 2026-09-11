@@ -106,7 +106,9 @@ class Data_Dreamer(BaseDataset):  # pylint: disable=locally-disabled, invalid-na
         else:
             chosen_option['waypoints'] = np.array(chosen_option['waypoints'])
         
-        chosen_option['dreamer_instruction'] = random.choice(chosen_option['dreamer_instruction'])
+        instruction = chosen_option['dreamer_instruction']
+        if isinstance(instruction, list):
+            chosen_option['dreamer_instruction'] = random.choice(instruction)
 
         dreamer_answer = f"Following the given instruction. Waypoints:"
         if activate_safety is not None:

@@ -23,7 +23,7 @@ from scipy.interpolate import interp1d
 from torch.utils.data import Dataset
 from tqdm import tqdm
 
-import simlingo_training.utils.transfuser_utils as t_u
+# import simlingo_training.utils.transfuser_utils as t_u
 from simlingo_training.utils.custom_types import DatasetOutput
 from simlingo_training.utils.projection import get_camera_intrinsics, project_points
 
@@ -42,7 +42,7 @@ class BaseDataset(Dataset):  # pylint: disable=locally-disabled, invalid-name
         for key, value in cfg.items():
             setattr(self, key, value)
 
-        self.tfs = image_augmenter(prob=self.img_augmentation_prob)
+        self.tfs = image_augmenter(prob=self.img_augmentation_prob) if self.img_augmentation else None
 
         filter_infractions_per_route = True
 
@@ -65,20 +65,25 @@ class BaseDataset(Dataset):  # pylint: disable=locally-disabled, invalid-name
         fail_reasons = {}
 
         repo_path = get_original_cwd()
+        # Templates ship with the upstream checkout; dataset paths are relative
+        # to the launch directory (or absolute when supplied by the user).
+        assets = Path(repo_path) / "data"
+        if not (assets / "augmented_templates").is_dir():
+            assets = Path(__file__).resolve().parents[2] / "data"
         
         # load templates
-        template_file = f"{repo_path}/data/augmented_templates/commentary_augmented.json"
+        template_file = assets / "augmented_templates/commentary_augmented.json"
         with open(template_file, 'r') as f:
             self.templates_commentary = ujson.load(f)
     
         # load templates
         if dreamer:
-            template_file = f"{repo_path}/data/augmented_templates/dreamer.json"
+            template_file = assets / "augmented_templates/dreamer.json"
             with open(template_file, 'r') as f:
                 self.templates_neg = ujson.load(f)
         
         if self.use_lmdrive_commands:
-            command_templates_file = f"{repo_path}/data/augmented_templates/lmdrive.json"
+            command_templates_file = assets / "augmented_templates/lmdrive.json"
             with open(command_templates_file, 'r') as f:
                 self.command_templates = ujson.load(f)
 
@@ -86,9 +91,9 @@ class BaseDataset(Dataset):  # pylint: disable=locally-disabled, invalid-name
         # during eval we only want to load predefines paths
         if evaluation:
             if self.use_qa:
-                chosen_eval_samples_path = f'{repo_path}/data/evalset_vqa.json'
+                chosen_eval_samples_path = assets / 'evalset_vqa.json'
             elif self.use_commentary:
-                chosen_eval_samples_path = f'{repo_path}/data/evalset_commentary.json'
+                chosen_eval_samples_path = assets / 'evalset_commentary.json'
             
             with open(chosen_eval_samples_path, 'r') as f:
                 self.chosen_eval_samples = ujson.load(f)
@@ -118,10 +123,10 @@ class BaseDataset(Dataset):  # pylint: disable=locally-disabled, invalid-name
 
         if not dreamer:
             if self.use_qa:
-                as_augment_file = f'{repo_path}/data/augmented_templates/drivelm_train_augmented_v2/all_as_augmented.json'
+                as_augment_file = assets / 'augmented_templates/drivelm_train_augmented_v2/all_as_augmented.json'
                 with open(as_augment_file, 'r') as f:
                     self.a_augment = ujson.load(f)
-                qs_augment_file = f'{repo_path}/data/augmented_templates/drivelm_train_augmented_v2/all_qs_augmented.json'
+                qs_augment_file = assets / 'augmented_templates/drivelm_train_augmented_v2/all_qs_augmented.json'
                 with open(qs_augment_file, 'r') as f:
                     self.q_augment = ujson.load(f)
 
@@ -141,7 +146,7 @@ class BaseDataset(Dataset):  # pylint: disable=locally-disabled, invalid-name
 
 
         if not self.bucket_name == "all":
-            with open(f"{repo_path}/" + self.bucket_path + '/buckets_paths.pkl', 'rb') as f:
+            with open(os.path.join(repo_path, self.bucket_path, 'buckets_paths.pkl'), 'rb') as f:
                 bucket_dict = pkl.load(f)
 
             bucket_run_ids = None
@@ -179,23 +184,23 @@ class BaseDataset(Dataset):  # pylint: disable=locally-disabled, invalid-name
                     run_id_path = Path(run_id)
                     run_id_parent = run_id_path.parent
                     run_id_name = run_id_path.name
-                    run_id_absolut = str(run_id_parent)
-                    run_id_absolut = f"{repo_path}/{str(run_id_parent)}"
+                    run_id_absolut = os.path.join(repo_path, str(run_id_parent))
                     if run_id_absolut not in run_id_dict:
                         run_id_dict[run_id_absolut] = [run_id_name]
                     else:
                         run_id_dict[run_id_absolut].append(run_id_name)
 
 
-        route_dirs = glob.glob(f"{repo_path}/" + self.data_path + '/data/simlingo/*/*/*/Town*')
-        print(f'Found {len(route_dirs)} routes in {repo_path + self.data_path}')
+        route_pattern = os.path.join(repo_path, self.data_path, 'data/simlingo/*/*/*/Town*')
+        route_dirs = glob.glob(route_pattern)
+        # print(f'Found {len(route_dirs)} routes in {os.path.join(repo_path, self.data_path)}')
         
         if not self.use_old_towns:
             route_dirs = [route_dir for route_dir in route_dirs if 'lb1_split' not in route_dir]
-            print(f'Found {len(route_dirs)} routes in {repo_path + self.data_path} after filtering out old towns')
+            print(f'Found {len(route_dirs)} routes in {os.path.join(repo_path, self.data_path)} after filtering out old towns')
         elif self.use_only_old_towns or self.bucket_name == "old_towns":
             route_dirs = [route_dir for route_dir in route_dirs if 'lb1_split' in route_dir]
-            print(f'Found {len(route_dirs)} routes in {repo_path + self.data_path} after filtering out non old towns')
+            print(f'Found {len(route_dirs)} routes in {os.path.join(repo_path, self.data_path)} after filtering out non old towns')
         
 
         random.shuffle(route_dirs)
@@ -219,9 +224,9 @@ class BaseDataset(Dataset):  # pylint: disable=locally-disabled, invalid-name
         total_routes += len(route_dirs)
         
         # route_dirs = route_dirs[:100]
-        print(f'Use {len(route_dirs)} routes.')
+        # print(f'Use {len(route_dirs)} routes.')
         
-        for sub_root in tqdm(route_dirs, file=sys.stdout):
+        for sub_root in route_dirs:
 
             route_dir = sub_root # + '/' + route
             if dreamer:
@@ -337,19 +342,19 @@ class BaseDataset(Dataset):  # pylint: disable=locally-disabled, invalid-name
         # https://github.com/pytorch/pytorch/issues/13246#issuecomment-905703662
         # A workaround is to store the string lists as numpy byte objects
         # because they only have 1 refcount.
-        self.images = np.array(self.images).astype(np.string_)
-        self.boxes = np.array(self.boxes).astype(np.string_)
-        self.measurements = np.array(self.measurements).astype(np.string_)
+        self.images = np.array(self.images).astype(np.bytes_)
+        self.boxes = np.array(self.boxes).astype(np.bytes_)
+        self.measurements = np.array(self.measurements).astype(np.bytes_)
         if dreamer:
-            self.alternative_trajectories = np.array(self.alternative_trajectories).astype(np.string_)
+            self.alternative_trajectories = np.array(self.alternative_trajectories).astype(np.bytes_)
 
         self.sample_start = np.array(self.sample_start)
         # if rank == 0:
-        print(f'[{self.split} samples]: Loading {len(self.images)} images from {self.data_path} for bucket {self.bucket_name}')
-        print('Total amount of routes:', total_routes)
-        print('Crashed routes:', crashed_routes)
-        print('Perfect routes:', perfect_routes)
-        print('Fail reasons:', fail_reasons)
+        # print(f'[{self.split} samples]: Loading {len(self.images)} images from {self.data_path} for bucket {self.bucket_name}')
+        # print('Total amount of routes:', total_routes)
+        # print('Crashed routes:', crashed_routes)
+        # print('Perfect routes:', perfect_routes)
+        # print('Fail reasons:', fail_reasons)
 
     def __len__(self):
         """Returns the length of the dataset. """
@@ -736,7 +741,11 @@ class BaseDataset(Dataset):  # pylint: disable=locally-disabled, invalid-name
         x, y = position_aug[:2, 0]
         # center_x, center_y, w, h, yaw
         bbox = np.array([x, y, bbox_dict['extent'][0], bbox_dict['extent'][1], 0, 0, 0, 0, 0])
-        bbox[4] = t_u.normalize_angle(bbox_dict['yaw'] - aug_yaw_rad)
+        # Same angle normalization as transfuser_utils, without importing the
+        # CARLA simulator and Shapely into offline data-loading workers.
+        bbox[4] = (bbox_dict['yaw'] - aug_yaw_rad) % (2 * np.pi)
+        if bbox[4] > np.pi:
+            bbox[4] -= 2 * np.pi
 
         if bbox_dict['class'] == 'car':
             bbox[5] = bbox_dict['speed']

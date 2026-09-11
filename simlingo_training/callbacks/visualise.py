@@ -189,8 +189,8 @@ class VisualiseCallback(Callback):
 def fig_to_np(fig):
     fig.tight_layout()
     fig.canvas.draw()
-    data = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
-    data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+    # Matplotlib 3.10 removed tostring_rgb; Agg exposes an RGBA buffer.
+    data = np.asarray(fig.canvas.buffer_rgba())[..., :3].copy()
     return data
 
 
