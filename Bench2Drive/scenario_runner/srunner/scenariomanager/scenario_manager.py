@@ -24,7 +24,6 @@ from srunner.scenariomanager.watchdog import Watchdog
 
 
 class ScenarioManager(object):
-
     """
     Basic scenario manager class. This class holds all functionality
     required to start, and analyze a scenario.
@@ -140,8 +139,7 @@ class ScenarioManager(object):
         self.end_system_time = time.time()
         end_game_time = GameTime.get_time()
 
-        self.scenario_duration_system = self.end_system_time - \
-            self.start_system_time
+        self.scenario_duration_system = self.end_system_time - self.start_system_time
         self.scenario_duration_game = end_game_time - start_game_time
 
         if self.scenario_tree.status == py_trees.common.Status.FAILURE:
@@ -215,9 +213,11 @@ class ScenarioManager(object):
             return True
 
         for criterion in criteria:
-            if (not criterion.optional and
-                    criterion.test_status != "SUCCESS" and
-                    criterion.test_status != "ACCEPTABLE"):
+            if (
+                not criterion.optional
+                and criterion.test_status != "SUCCESS"
+                and criterion.test_status != "ACCEPTABLE"
+            ):
                 failure = True
                 result = "FAILURE"
             elif criterion.test_status == "ACCEPTABLE":

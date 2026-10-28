@@ -19,15 +19,15 @@ from leaderboard.envs.sensor_interface import SensorInterface
 
 
 class Track(Enum):
-
     """
     This enum represents the different tracks of the CARLA AD leaderboard.
     """
-    SENSORS = 'SENSORS'
-    MAP = 'MAP'
+
+    SENSORS = "SENSORS"
+    MAP = "MAP"
+
 
 class AutonomousAgent(object):
-
     """
     Autonomous agent base class. All user agents have to be derived from this class
     """
@@ -106,10 +106,16 @@ class AutonomousAgent(object):
             self.wallclock_t0 = GameTime.get_wallclocktime()
         wallclock = GameTime.get_wallclocktime()
         wallclock_diff = (wallclock - self.wallclock_t0).total_seconds()
-        sim_ratio = 0 if wallclock_diff == 0 else timestamp/wallclock_diff
+        sim_ratio = 0 if wallclock_diff == 0 else timestamp / wallclock_diff
 
-        print('=== [Agent] -- Wallclock = {} -- System time = {} -- Game time = {} -- Ratio = {}x'.format(
-            str(wallclock)[:-3], format(wallclock_diff, '.3f'), format(timestamp, '.3f'), format(sim_ratio, '.3f')))
+        print(
+            "=== [Agent] -- Wallclock = {} -- System time = {} -- Game time = {} -- Ratio = {}x".format(
+                str(wallclock)[:-3],
+                format(wallclock_diff, ".3f"),
+                format(timestamp, ".3f"),
+                format(sim_ratio, ".3f"),
+            )
+        )
 
         control = self.run_step(input_data, timestamp, sensors)
         control.manual_gear_shift = False
@@ -127,5 +133,8 @@ class AutonomousAgent(object):
         self.org_dense_route_gps = global_plan_gps
         self.org_dense_route_world_coord = global_plan_world_coord
         ds_ids = downsample_route(global_plan_world_coord, 200)
-        self._global_plan_world_coord = [(global_plan_world_coord[x][0], global_plan_world_coord[x][1]) for x in ds_ids]
+        self._global_plan_world_coord = [
+            (global_plan_world_coord[x][0], global_plan_world_coord[x][1])
+            for x in ds_ids
+        ]
         self._global_plan = [global_plan_gps[x] for x in ds_ids]

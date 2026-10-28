@@ -4,7 +4,8 @@ from pathlib import Path
 from typing import Any, Callable, Dict
 
 import matplotlib
-matplotlib.use('agg')
+
+matplotlib.use("agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import pytorch_lightning as pl
@@ -41,17 +42,20 @@ def _autocast_dtype(pl_module: pl.LightningModule) -> torch.dtype:
 
 
 def get_1d_wps(wps):
-    waypoints_1d = [np.linalg.norm(wps[i+1] - wps[i]) for i in range(len(wps)-1)]
+    waypoints_1d = [np.linalg.norm(wps[i + 1] - wps[i]) for i in range(len(wps) - 1)]
     # cumsum to get the distance from the start
     waypoints_1d = np.cumsum(waypoints_1d)
     waypoints_1d = [[x, 0] for x in waypoints_1d]
-    
+
     # prepend 0,0
     waypoints_1d = [[0, 0]] + waypoints_1d
-    
+
     return np.array(waypoints_1d).reshape(-1, 2)
 
-def once_per_step(function: Callable[[Callback, Trainer, LightningModule, Any, Any, int], None]) -> Callable:
+
+def once_per_step(
+    function: Callable[[Callback, Trainer, LightningModule, Any, Any, int], None],
+) -> Callable:
     """
     ``on_train_batch_end`` gets called by pytorch lightning an ``accumulate_grad_batches`` number of times per global step.
     Sometimes ``on_train_batch_end`` is intended per optimisation step, not per each forward pass of a batch.
@@ -70,7 +74,12 @@ def once_per_step(function: Callable[[Callback, Trainer, LightningModule, Any, A
     # reporting thus is correct.
     @wraps(function)
     def only_on_first_go(
-        self: Callback, trainer: Trainer, pl_module: LightningModule, outputs: Any, batch: Any, batch_idx: int
+        self: Callback,
+        trainer: Trainer,
+        pl_module: LightningModule,
+        outputs: Any,
+        batch: Any,
+        batch_idx: int,
     ) -> None:
         if not all(
             (
@@ -95,7 +104,9 @@ def once_per_step(function: Callable[[Callback, Trainer, LightningModule, Any, A
 
 
 class VisualiseCallback(Callback):
-    def __init__(self, interval: int, val_interval: int = 10, predict_interval: int = 1):
+    def __init__(
+        self, interval: int, val_interval: int = 10, predict_interval: int = 1
+    ):
         super().__init__()
         self.interval = interval
         self.val_interval = val_interval
@@ -115,22 +126,28 @@ class VisualiseCallback(Callback):
             return
 
         print("Validation visualization!")
-        with torch.autocast(device_type="cuda", dtype=_autocast_dtype(pl_module), enabled=True):
+        with torch.autocast(
+            device_type="cuda", dtype=_autocast_dtype(pl_module), enabled=True
+        ):
             # Forward with sampling
             # waypoints, route, target_speed, language = pl_module.forward(batch, return_language=True)
             speed_wps, route, language = pl_module.forward(batch, return_language=True)
 
         try:
-            self._visualise_training_examples(batch, speed_wps, trainer, pl_module, 'val_waypoints')
-            self._visualise_training_examples(batch, route, trainer, pl_module, 'val_route')
+            self._visualise_training_examples(
+                batch, speed_wps, trainer, pl_module, "val_waypoints"
+            )
+            self._visualise_training_examples(
+                batch, route, trainer, pl_module, "val_route"
+            )
             # visualise_cameras(batch, pl_module, trainer, language, route, speed_wps, name='val_imgs')
-            
+
             print("visualised_val_example")
             # _LOGGER.info("visualised_training_example")
         except Exception as e:  # pylint: disable=broad-except
             print("visualise_training_examples", e)
         #     pass
-            # _LOGGER.exception("visualise_training_examples", e)
+        # _LOGGER.exception("visualise_training_examples", e)
         if hasattr(pl_module, "clear_cache"):
             print("clearing_cache")
             # Clear cache associated with decoding language model
@@ -150,14 +167,20 @@ class VisualiseCallback(Callback):
         if trainer.global_step % self.interval != 0:
             return
 
-        with torch.autocast(device_type="cuda", dtype=_autocast_dtype(pl_module), enabled=True):
+        with torch.autocast(
+            device_type="cuda", dtype=_autocast_dtype(pl_module), enabled=True
+        ):
             # Forward with sampling
             speed_wps, route, language = pl_module.forward(batch, return_language=True)
 
-        self._visualise_training_examples(batch, speed_wps, trainer, pl_module, 'waypoints', language_pred=language)
-        self._visualise_training_examples(batch, route, trainer, pl_module, 'route', language_pred=language)
+        self._visualise_training_examples(
+            batch, speed_wps, trainer, pl_module, "waypoints", language_pred=language
+        )
+        self._visualise_training_examples(
+            batch, route, trainer, pl_module, "route", language_pred=language
+        )
         # visualise_cameras(batch, pl_module, trainer, language, route, speed_wps, name='imgs')
-    
+
         print("visualised_training_example")
         if hasattr(pl_module, "clear_cache"):
             print("clearing_cache")
@@ -171,17 +194,23 @@ class VisualiseCallback(Callback):
         trainer: pl.Trainer,
         pl_module: pl.LightningModule,
         name: str,
-        language_pred = None,
+        language_pred=None,
     ):
         if not pl_module.logger:
             return
 
-        if 'waypoints' in name:
-            waypoint_vis, prompt_img = visualise_waypoints(batch, waypoints, language_pred=language_pred)
-        elif 'route' in name:
-            waypoint_vis, prompt_img = visualise_waypoints(batch, waypoints, language_pred=language_pred, route=True)
+        if "waypoints" in name:
+            waypoint_vis, prompt_img = visualise_waypoints(
+                batch, waypoints, language_pred=language_pred
+            )
+        elif "route" in name:
+            waypoint_vis, prompt_img = visualise_waypoints(
+                batch, waypoints, language_pred=language_pred, route=True
+            )
         pl_module.logger.log_image(
-            f"visualise/{name}", images=[Image.fromarray(waypoint_vis), prompt_img], step=trainer.global_step
+            f"visualise/{name}",
+            images=[Image.fromarray(waypoint_vis), prompt_img],
+            step=trainer.global_step,
         )
         plt.close("all")
 
@@ -195,7 +224,9 @@ def fig_to_np(fig):
 
 
 @torch.no_grad()
-def visualise_waypoints(batch: DrivingExample, waypoints, route=False, language_pred=None):
+def visualise_waypoints(
+    batch: DrivingExample, waypoints, route=False, language_pred=None
+):
     assert batch.driving_label is not None
     n = 11
     if route:
@@ -205,7 +236,7 @@ def visualise_waypoints(batch: DrivingExample, waypoints, route=False, language_
         gt_waypoints = batch.driving_label.path[:, :n, :].cpu().numpy()
     else:
         gt_waypoints = batch.driving_label.waypoints[:, :n].cpu().numpy()
-    
+
     org_wps = []
     if len(batch.driving_input.prompt.placeholder_values) > 0:
         for b in batch.driving_input.prompt.placeholder_values:
@@ -231,16 +262,30 @@ def visualise_waypoints(batch: DrivingExample, waypoints, route=False, language_
         if batch.driving_label.answer is not None:
             language = batch.driving_label.answer.language_string[i]
 
-            wrapped_text = textwrap.fill(language, width=80) 
-            wrapped_pred_text = textwrap.fill(language_pred[i], width=80) if language_pred is not None else ""
+            wrapped_text = textwrap.fill(language, width=80)
+            wrapped_pred_text = (
+                textwrap.fill(language_pred[i], width=80)
+                if language_pred is not None
+                else ""
+            )
 
             lines_wrap = len(textwrap.wrap(wrapped_text, width=80))
             lines_wrap_pred = len(textwrap.wrap(wrapped_pred_text, width=80))
-        
-            white_draw.text((10, y_curr), f'{i} GT: {wrapped_text}', fill="black", font=ImageFont.truetype(str(_FONT_PATH), 20))
-            y_curr += 20*lines_wrap
-            white_draw.text((10, y_curr), f'{i} Pred: {wrapped_pred_text}', fill="black", font=ImageFont.truetype(str(_FONT_PATH), 20))
-            y_curr += 20*lines_wrap_pred + 20
+
+            white_draw.text(
+                (10, y_curr),
+                f"{i} GT: {wrapped_text}",
+                fill="black",
+                font=ImageFont.truetype(str(_FONT_PATH), 20),
+            )
+            y_curr += 20 * lines_wrap
+            white_draw.text(
+                (10, y_curr),
+                f"{i} Pred: {wrapped_pred_text}",
+                fill="black",
+                font=ImageFont.truetype(str(_FONT_PATH), 20),
+            )
+            y_curr += 20 * lines_wrap_pred + 20
         ax = fig.add_subplot(rows, cols, i + 1)
         # Predicted waypoints
         ax.scatter(pred_waypoints[i, :, 1], pred_waypoints[i, :, 0], marker="o", c="b")
@@ -252,7 +297,7 @@ def visualise_waypoints(batch: DrivingExample, waypoints, route=False, language_
         if len(org_wps) > 0:
             ax.scatter(org_wps[i][:, 1], org_wps[i][:, 0], marker="o", c="r")
             ax.plot(org_wps[i][:, 1], org_wps[i][:, 0], c="r")
-            
+
         ax.set_title(f"waypoints {i}")
         ax.grid()
         ax.set_aspect("equal", adjustable="box")

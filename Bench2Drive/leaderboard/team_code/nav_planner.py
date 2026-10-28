@@ -11,6 +11,7 @@ import carla
 import warnings
 from agents.navigation.global_route_planner import GlobalRoutePlanner
 
+
 class RoutePlanner(object):
     """
     Gets the next waypoint along a path
@@ -59,7 +60,11 @@ class RoutePlanner(object):
 
         if carla_map is not None:
             for _ in range(50):
-                loc = carla.Location(x=self.route[-1][0][0], y=self.route[-1][0][1], z=self.route[-1][0][2])
+                loc = carla.Location(
+                    x=self.route[-1][0][0],
+                    y=self.route[-1][0][1],
+                    z=self.route[-1][0][2],
+                )
                 next_loc = carla_map.get_waypoint(loc).next(1)[0].transform.location
                 next_loc = np.array([next_loc.x, next_loc.y, next_loc.z])
                 self.route.append((next_loc, self.route[-1][1]))
@@ -69,7 +74,7 @@ class RoutePlanner(object):
         self.route_distances.append(0.0)
         for i in range(1, len(self.route)):
             diff = self.route[i][0] - self.route[i - 1][0]
-            distance = (diff[0]**2 + diff[1]**2)**0.5
+            distance = (diff[0] ** 2 + diff[1] ** 2) ** 0.5
             self.route_distances.append(distance)
 
     def run_step(self, gps):
@@ -87,7 +92,7 @@ class RoutePlanner(object):
             cumulative_distance += self.route_distances[i]
 
             diff = self.route[i][0] - gps
-            distance = (diff[0]**2 + diff[1]**2)**0.5
+            distance = (diff[0] ** 2 + diff[1] ** 2) ** 0.5
 
             if farthest_in_range < distance <= self.min_distance:
                 farthest_in_range = distance
@@ -103,9 +108,28 @@ class RoutePlanner(object):
     def save(self):
         # because self.route saves objects of traffic lights and traffic signs a deep copy is not possible
         self.saved_route = []
-        for (loc, cmd, d_traffic, traffic, d_stop, stop, speed_limit, corrected_speed_limit) in self.route:
-            self.saved_route.append((np.copy(loc), cmd, d_traffic, traffic, d_stop, stop, speed_limit, \
-                                                                                        corrected_speed_limit))
+        for (
+            loc,
+            cmd,
+            d_traffic,
+            traffic,
+            d_stop,
+            stop,
+            speed_limit,
+            corrected_speed_limit,
+        ) in self.route:
+            self.saved_route.append(
+                (
+                    np.copy(loc),
+                    cmd,
+                    d_traffic,
+                    traffic,
+                    d_stop,
+                    stop,
+                    speed_limit,
+                    corrected_speed_limit,
+                )
+            )
 
         self.saved_route = deque(self.saved_route)
         self.saved_route_distances = deepcopy(self.route_distances)
@@ -119,7 +143,9 @@ class RoutePlanner(object):
         self.is_last = False
 
 
-def interpolate_trajectory(world_map, waypoints_trajectory, hop_resolution=1.0, max_len=400):
+def interpolate_trajectory(
+    world_map, waypoints_trajectory, hop_resolution=1.0, max_len=400
+):
     """
     Given some raw keypoints interpolate a full dense trajectory to be used
     by the user.
@@ -150,7 +176,9 @@ def interpolate_trajectory(world_map, waypoints_trajectory, hop_resolution=1.0, 
             else:
                 for wp, connection in interpolated_trace:
                     route.append((wp.transform, connection))
-                    gps_coord = _location_to_gps(lat_ref, lon_ref, wp.transform.location)
+                    gps_coord = _location_to_gps(
+                        lat_ref, lon_ref, wp.transform.location
+                    )
                     gps_route.append((gps_coord, connection))
 
     return gps_route, route
@@ -239,7 +267,11 @@ def _location_to_gps(lat_ref, lon_ref, location):
     EARTH_RADIUS_EQUA = 6378137.0
     scale = math.cos(lat_ref * math.pi / 180.0)
     mx = scale * lon_ref * math.pi * EARTH_RADIUS_EQUA / 180.0
-    my = scale * EARTH_RADIUS_EQUA * math.log(math.tan((90.0 + lat_ref) * math.pi / 360.0))
+    my = (
+        scale
+        * EARTH_RADIUS_EQUA
+        * math.log(math.tan((90.0 + lat_ref) * math.pi / 360.0))
+    )
     mx += location.x
     my -= location.y
 

@@ -16,13 +16,17 @@ from functools import wraps
 
 
 from simlingo_base_training.utils.custom_types import DrivingExample
-from simlingo_base_training.utils.projection import get_camera_intrinsics, project_points
-
+from simlingo_base_training.utils.projection import (
+    get_camera_intrinsics,
+    project_points,
+)
 
 _STEPS_TO_FIRST_IDX: Dict[int, int] = {}
 
 
-def once_per_step(function: Callable[[Callback, Trainer, LightningModule, Any, Any, int], None]) -> Callable:
+def once_per_step(
+    function: Callable[[Callback, Trainer, LightningModule, Any, Any, int], None],
+) -> Callable:
     """
     ``on_train_batch_end`` gets called by pytorch lightning an ``accumulate_grad_batches`` number of times per global step.
     Sometimes ``on_train_batch_end`` is intended per optimisation step, not per each forward pass of a batch.
@@ -41,7 +45,12 @@ def once_per_step(function: Callable[[Callback, Trainer, LightningModule, Any, A
     # reporting thus is correct.
     @wraps(function)
     def only_on_first_go(
-        self: Callback, trainer: Trainer, pl_module: LightningModule, outputs: Any, batch: Any, batch_idx: int
+        self: Callback,
+        trainer: Trainer,
+        pl_module: LightningModule,
+        outputs: Any,
+        batch: Any,
+        batch_idx: int,
     ) -> None:
         if not all(
             (
@@ -88,11 +97,13 @@ class VisualiseCallback(Callback):
             speed_wps, route = pl_module.forward(batch.driving_input)
 
         try:
-            self._visualise_training_examples(batch, speed_wps, trainer, pl_module, 'waypoints')
-            self._visualise_training_examples(batch, route, trainer, pl_module, 'route')
+            self._visualise_training_examples(
+                batch, speed_wps, trainer, pl_module, "waypoints"
+            )
+            self._visualise_training_examples(batch, route, trainer, pl_module, "route")
 
             # visualise_cameras(batch, pl_module, trainer, route, speed_wps)
-            
+
             print("visualised_training_example")
             # _LOGGER.info("visualised_training_example")
         except Exception as e:  # pylint: disable=broad-except
@@ -119,13 +130,15 @@ class VisualiseCallback(Callback):
 
         # only visualise max 16 examples
         # if len(batch.run_id) > 16:
-        if name == 'waypoints':
+        if name == "waypoints":
             waypoint_vis = visualise_waypoints(batch, waypoints)
-        elif name == 'route':
+        elif name == "route":
             waypoint_vis = visualise_waypoints(batch, waypoints, route=True)
         # pl_module.logger.log_image("visualise/images", images=[Image.fromarray(si_vis)], step=trainer.global_step)
         pl_module.logger.log_image(
-            f"visualise/{name}", images=[Image.fromarray(waypoint_vis)], step=trainer.global_step
+            f"visualise/{name}",
+            images=[Image.fromarray(waypoint_vis)],
+            step=trainer.global_step,
         )
 
         plt.close("all")
@@ -137,6 +150,7 @@ def fig_to_np(fig):
     data = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
     data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
     return data
+
 
 @torch.no_grad()
 def visualise_waypoints(batch: DrivingExample, waypoints, route=False):
@@ -156,7 +170,6 @@ def visualise_waypoints(batch: DrivingExample, waypoints, route=False):
     b = min(b, 16)
     rows = int(np.ceil(b / 4))
     cols = min(b, 4)
-
 
     # add space for text
     fig.subplots_adjust(hspace=0.8)

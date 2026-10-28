@@ -10,7 +10,21 @@ DIS_WALKER_SAVE = 100
 DIS_SIGN_SAVE = 100
 DIS_LIGHT_SAVE = 100
 
-edges = [[0,1], [1,3], [3,2], [2,0], [0,4], [4,5], [5,1], [5,7], [7,6], [6,4], [6,2], [7,3]]
+edges = [
+    [0, 1],
+    [1, 3],
+    [3, 2],
+    [2, 0],
+    [0, 4],
+    [4, 5],
+    [5, 1],
+    [5, 7],
+    [7, 6],
+    [6, 4],
+    [6, 2],
+    [7, 3],
+]
+
 
 def get_image_point(loc, K, w2c):
     # Calculate 2D projection of 3D coordinate
@@ -32,14 +46,21 @@ def get_image_point(loc, K, w2c):
     # normalize
     point_img[0] /= point_img[2]
     point_img[1] /= point_img[2]
-    
+
     return point_img[0:2], depth
+
 
 def point_in_canvas_wh(pos):
     """Return true if point is in canvas"""
-    if (pos[0] >= 0) and (pos[0] < WINDOW_WIDTH) and (pos[1] >= 0) and (pos[1] < WINDOW_HEIGHT):
+    if (
+        (pos[0] >= 0)
+        and (pos[0] < WINDOW_WIDTH)
+        and (pos[1] >= 0)
+        and (pos[1] < WINDOW_HEIGHT)
+    ):
         return True
     return False
+
 
 def get_forward_vector(yaw):
     # Convert the yaw angle from degrees to radians
@@ -52,12 +73,13 @@ def get_forward_vector(yaw):
     z = 0
     return np.array([x, y, z])
 
+
 def calculate_cube_vertices(center, extent):
     if isinstance(center, list):
         cx, cy, cz = center
         x, y, z = extent
     else:
-        cx, cy, cz = center.x,  center.y,  center.z
+        cx, cy, cz = center.x, center.y, center.z
         x, y, z = extent.x, extent.y, extent.z
     vertices = [
         (cx + x, cy + y, cz + z),
@@ -67,9 +89,10 @@ def calculate_cube_vertices(center, extent):
         (cx - x, cy + y, cz + z),
         (cx - x, cy + y, cz - z),
         (cx - x, cy - y, cz + z),
-        (cx - x, cy - y, cz - z)
+        (cx - x, cy - y, cz - z),
     ]
     return vertices
+
 
 def draw_dashed_line(img, start_point, end_point, color, thickness=1, dash_length=5):
     """
@@ -83,7 +106,9 @@ def draw_dashed_line(img, start_point, end_point, color, thickness=1, dash_lengt
     - dash_length: The length of each dash segment in the dashed line.
     """
     # Calculate total length
-    d = np.sqrt((end_point[0] - start_point[0])**2 + (end_point[1] - start_point[1])**2)
+    d = np.sqrt(
+        (end_point[0] - start_point[0]) ** 2 + (end_point[1] - start_point[1]) ** 2
+    )
     dx = (end_point[0] - start_point[0]) / d
     dy = (end_point[1] - start_point[1]) / d
 
@@ -100,11 +125,13 @@ def draw_dashed_line(img, start_point, end_point, color, thickness=1, dash_lengt
         y = y_end + dy * dash_length
         d -= 2 * dash_length
 
+
 def world_to_ego(point_world, w2e):
     point_world = np.array([point_world[0], point_world[1], point_world[2], 1])
     point_ego = np.dot(w2e, point_world)
     point_ego = [point_ego[1], -point_ego[0], point_ego[2]]
     return point_ego
+
 
 def vector_angle(v1, v2):
     dot_product = np.dot(v1, v2)
@@ -115,24 +142,31 @@ def vector_angle(v1, v2):
     angle_degrees = np.degrees(angle_radians)
     return angle_degrees
 
+
 def get_weather_id(weather_conditions):
     from xml.etree import ElementTree as ET
-    tree = ET.parse('./leaderboard/data/weather.xml')
+
+    tree = ET.parse("./leaderboard/data/weather.xml")
     root = tree.getroot()
+
     def conditions_match(weather, conditions):
-        for (key, value) in weather:
-            if key == 'route_percentage' : continue
+        for key, value in weather:
+            if key == "route_percentage":
+                continue
             if str(conditions[key]) != value:
                 return False
         return True
-    for case in root.findall('case'):
+
+    for case in root.findall("case"):
         weather = case[0].items()
         if conditions_match(weather, weather_conditions):
             return case.items()[0][1]
     return None
 
+
 def compute_2d_distance(loc1, loc2):
-    return math.sqrt((loc1.x-loc2.x)**2+(loc1.y-loc2.y)**2)
+    return math.sqrt((loc1.x - loc2.x) ** 2 + (loc1.y - loc2.y) ** 2)
+
 
 def build_projection_matrix(w, h, fov, is_behind_camera=False):
     focal = w / (2.0 * np.tan(fov * np.pi / 360.0))
@@ -147,6 +181,7 @@ def build_projection_matrix(w, h, fov, is_behind_camera=False):
     K[1, 2] = h / 2.0
     return K
 
+
 def convert_depth(data):
     """
     Computes the normalized depth from a CARLA depth map.
@@ -154,8 +189,9 @@ def convert_depth(data):
     data = data.astype(np.float16)
 
     normalized = np.dot(data, [65536.0, 256.0, 1.0])
-    normalized /= (256 * 256 * 256 - 1)
+    normalized /= 256 * 256 * 256 - 1
     return normalized * 1000
+
 
 def get_relative_transform(ego_matrix, vehicle_matrix):
     """
@@ -172,11 +208,13 @@ def get_relative_transform(ego_matrix, vehicle_matrix):
 
     return relative_pos
 
+
 def normalize_angle(x):
     x = x % (2 * np.pi)  # force in range [0, 2 pi)
     if x > np.pi:  # move to [-pi, pi)
         x -= 2 * np.pi
     return x
+
 
 def build_skeleton(ped, sk_links):
     ######## get the pedestrian skeleton #########
@@ -190,15 +228,31 @@ def build_skeleton(ped, sk_links):
     for link in sk_links[1:]:
 
         # get the roots of the two bones to be joined
-        bone_transform_1 = next(filter(lambda b: b.name == link[0], bones.bone_transforms), None)
-        bone_transform_2 = next(filter(lambda b: b.name == link[1], bones.bone_transforms), None)
+        bone_transform_1 = next(
+            filter(lambda b: b.name == link[0], bones.bone_transforms), None
+        )
+        bone_transform_2 = next(
+            filter(lambda b: b.name == link[1], bones.bone_transforms), None
+        )
 
         # some bone names aren't matched
         if bone_transform_1 is not None and bone_transform_2 is not None:
-            lines_3d.append([(bone_transform_1.world.location.x, bone_transform_1.world.location.y, bone_transform_1.world.location.z), 
-                             (bone_transform_2.world.location.x, bone_transform_2.world.location.y, bone_transform_2.world.location.z)]
-                            )
+            lines_3d.append(
+                [
+                    (
+                        bone_transform_1.world.location.x,
+                        bone_transform_1.world.location.y,
+                        bone_transform_1.world.location.z,
+                    ),
+                    (
+                        bone_transform_2.world.location.x,
+                        bone_transform_2.world.location.y,
+                        bone_transform_2.world.location.z,
+                    ),
+                ]
+            )
     return lines_3d
+
 
 def get_matrix(location, rotation):
     """

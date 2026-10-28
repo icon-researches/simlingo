@@ -34,15 +34,19 @@ def cross_track_error(points: Tensor, path: Tensor):
 
     return (points - pt1).mul(normal).sum(-1).abs()
 
+
 class NormZeroOne(nn.Module):
     def __init__(self, min_max: Tuple[float, float]):
         super().__init__()
-        self.register_buffer("min_max", torch.tensor(min_max, dtype=torch.float), persistent=False)
+        self.register_buffer(
+            "min_max", torch.tensor(min_max, dtype=torch.float), persistent=False
+        )
 
     def forward(self, x: Tensor) -> Tensor:
         """Normalise tensor to [0, 1] using values from min_max"""
         return (x - self.min_max[0]) / (self.min_max[1] - self.min_max[0])
-    
+
+
 class FocalLoss(nn.Module):
     def __init__(self, gamma: float = 0, size_average: bool = True):
         super(FocalLoss, self).__init__()
@@ -69,15 +73,25 @@ class WaypointInputAdaptor(nn.Module):
         hidden_size: hidden dimension used in Linear layers under the hood.
         norm_layer: the `Module` to use to normalize the values of the input tensor.
     """
-    
+
     def __init__(
-        self, token_size: int = 258, hidden_size: int = 64, hidden_size2: int = 128, norm_layer: Optional[nn.Module] = None
+        self,
+        token_size: int = 258,
+        hidden_size: int = 64,
+        hidden_size2: int = 128,
+        norm_layer: Optional[nn.Module] = None,
     ):
         super().__init__()
         self.hidden_size = hidden_size
         self.norm_layer = norm_layer
 
-        self.mlp = nn.Sequential(nn.Linear(2, hidden_size), nn.ReLU(True), nn.Linear(hidden_size, hidden_size2), nn.ReLU(True), nn.Linear(hidden_size2, token_size))
+        self.mlp = nn.Sequential(
+            nn.Linear(2, hidden_size),
+            nn.ReLU(True),
+            nn.Linear(hidden_size, hidden_size2),
+            nn.ReLU(True),
+            nn.Linear(hidden_size2, token_size),
+        )
 
     def forward(self, x: Tensor) -> Tensor:
         """
@@ -94,12 +108,13 @@ class WaypointInputAdaptor(nn.Module):
 
 
 class DrivingAdaptor(nn.Module):
-    def __init__(self, 
-                hidden_size: int, 
-                mlp_dim=256, 
-                predict_route_as_wps=False, 
-                speed_wps_mode=False,
-            ):
+    def __init__(
+        self,
+        hidden_size: int,
+        mlp_dim=256,
+        predict_route_as_wps=False,
+        speed_wps_mode=False,
+    ):
         super().__init__()
         self.heads = {}
         self.order = []
@@ -109,43 +124,51 @@ class DrivingAdaptor(nn.Module):
 
         if predict_route_as_wps:
             self.future_waypoints = 20
-            self.query_embeds_wps = nn.Parameter(0.02 * torch.randn((1, self.future_waypoints, hidden_size)))
-            self.route_head = nn.Sequential(
-                nn.Linear(hidden_size, mlp_dim*2), nn.SiLU(True),nn.Linear(mlp_dim*2, mlp_dim), nn.SiLU(True), nn.Linear(mlp_dim, 2, bias=False)
+            self.query_embeds_wps = nn.Parameter(
+                0.02 * torch.randn((1, self.future_waypoints, hidden_size))
             )
-            
-            self.queries = {'route': self.query_embeds_wps}
-            self.sizes = {'route': self.future_waypoints}
-            self.heads["route"] = self.route_head
-            self.order.append('route')
+            self.route_head = nn.Sequential(
+                nn.Linear(hidden_size, mlp_dim * 2),
+                nn.SiLU(True),
+                nn.Linear(mlp_dim * 2, mlp_dim),
+                nn.SiLU(True),
+                nn.Linear(mlp_dim, 2, bias=False),
+            )
 
-        if speed_wps_mode == '2d':
+            self.queries = {"route": self.query_embeds_wps}
+            self.sizes = {"route": self.future_waypoints}
+            self.heads["route"] = self.route_head
+            self.order.append("route")
+
+        if speed_wps_mode == "2d":
             dim = 2
-        elif speed_wps_mode == '1d':
+        elif speed_wps_mode == "1d":
             dim = 1
         else:
-            raise ValueError(f"speed_wps_mode must be '1d' or '2d', not {speed_wps_mode}")
-        self.future_speed_waypoints = 10 #TODO: read from config
-        self.query_embeds_speed = nn.Parameter(0.02 * torch.randn((1, self.future_speed_waypoints, hidden_size)))
-        self.speed_wps_head = nn.Sequential(
-                nn.Linear(hidden_size, mlp_dim), nn.SiLU(True), nn.Linear(mlp_dim, dim, bias=False)
+            raise ValueError(
+                f"speed_wps_mode must be '1d' or '2d', not {speed_wps_mode}"
             )
+        self.future_speed_waypoints = 10  # TODO: read from config
+        self.query_embeds_speed = nn.Parameter(
+            0.02 * torch.randn((1, self.future_speed_waypoints, hidden_size))
+        )
+        self.speed_wps_head = nn.Sequential(
+            nn.Linear(hidden_size, mlp_dim),
+            nn.SiLU(True),
+            nn.Linear(mlp_dim, dim, bias=False),
+        )
         self.heads["speed_wps"] = self.speed_wps_head
-        self.queries['speed_wps'] = self.query_embeds_speed
-        self.sizes['speed_wps'] = self.future_speed_waypoints
-        self.order.append('speed_wps')
+        self.queries["speed_wps"] = self.query_embeds_speed
+        self.sizes["speed_wps"] = self.future_speed_waypoints
+        self.order.append("speed_wps")
 
-
-    def forward(self, 
-            driving_example: DrivingExample,
-            **kwargs
-            ) -> Dict[str, Tensor]:
+    def forward(self, driving_example: DrivingExample, **kwargs) -> Dict[str, Tensor]:
 
         try:
             driving_input = driving_example.driving_input
         except AttributeError:
             driving_input = driving_example
-        
+
         b = driving_input.camera_images.shape[0]
         inputs = None
 
@@ -161,9 +184,7 @@ class DrivingAdaptor(nn.Module):
         return {"inputs": inputs, "inputs_mask": inputs_mask}
 
     def get_predictions(
-        self, 
-        features: Tensor,
-        logits: Optional[Tensor] = None
+        self, features: Tensor, logits: Optional[Tensor] = None
     ) -> Dict:
 
         current_index = 0
@@ -171,29 +192,32 @@ class DrivingAdaptor(nn.Module):
         for i, input_type in enumerate(self.order):
             size = self.sizes[input_type]
 
-            feature = features[:, current_index: current_index + size]
+            feature = features[:, current_index : current_index + size]
             prediction = self.heads[input_type](feature).cumsum(1)
 
             predictions[input_type] = prediction
             current_index += size
-        
+
         return predictions
 
-
     def compute_loss(
-        self, adaptor_features: Tensor, adaptor_logits: Tensor, _inputs: Dict[str, Tensor], example: DrivingExample
+        self,
+        adaptor_features: Tensor,
+        adaptor_logits: Tensor,
+        _inputs: Dict[str, Tensor],
+        example: DrivingExample,
     ) -> Dict[str, Tuple[Tensor, Tensor]]:
         label = example.driving_label
         assert label is not None
-        
+
         if self.predict_route_as_wps:
             label_route = label.path
         else:
             label_route = None
 
-        if self.speed_wps_mode == '2d':
+        if self.speed_wps_mode == "2d":
             label_speed_wps = label.waypoints[:, : self.future_waypoints + 1]
-        elif self.speed_wps_mode == '1d':
+        elif self.speed_wps_mode == "1d":
             label_speed_wps = label.waypoints_1d
         else:
             label_speed_wps = None
@@ -202,18 +226,21 @@ class DrivingAdaptor(nn.Module):
         loss_dict = {}
         for i, input_type in enumerate(self.order):
             size = self.sizes[input_type]
-            features_tmp = adaptor_features[:, current_index: current_index + size]
-            label = locals()[f'label_{input_type}']
+            features_tmp = adaptor_features[:, current_index : current_index + size]
+            label = locals()[f"label_{input_type}"]
 
             prediction = self.heads[input_type](features_tmp).cumsum(1)
             loss = F.smooth_l1_loss(prediction, label, reduction="none").sum(-1)
-            
+
             # if input_type == 'waypoints' and self.predict_route_as_wps:
             #     # compute cross track error
             #     cte = cross_track_error(prediction, label_waypoints)
             #     loss_dict[f"{input_type}_cte_loss"] = (cte, torch.ones_like(cte, dtype=torch.long))
 
-            loss_dict[f"{input_type}_loss"] = (loss, torch.ones_like(loss, dtype=torch.long))
+            loss_dict[f"{input_type}_loss"] = (
+                loss,
+                torch.ones_like(loss, dtype=torch.long),
+            )
             loss_dict[f"{input_type}_prediction"] = prediction
             loss_dict[f"{input_type}_label"] = label
             current_index += size
@@ -229,35 +256,49 @@ class LanguageAdaptor(nn.Module):
             self.lm_head = language_model.model.lm_head
         elif hasattr(language_model.model, "embed_out"):
             self.lm_head = language_model.model.embed_out
-        elif hasattr(language_model.model.base_model.model, 'output'):
+        elif hasattr(language_model.model.base_model.model, "output"):
             self.lm_head = language_model.model.base_model.model.output
         else:
-            raise ValueError("Language model must have `lm_head` or `embed_out` attribute.")
+            raise ValueError(
+                "Language model must have `lm_head` or `embed_out` attribute."
+            )
 
-
-    def forward(self, example: DrivingExample, inference=False, **kwargs) -> Dict[str, Tensor]:
+    def forward(
+        self, example: DrivingExample, inference=False, **kwargs
+    ) -> Dict[str, Tensor]:
         try:
             driving_input = example.driving_input
         except AttributeError:
             driving_input = example
-            
+
         b = driving_input.camera_images.size(0)
-        
+
         if inference:
             label = driving_input.prompt_inference
         else:
             label = driving_input.prompt
-            
+
         if label is not None:
             ids = label.phrase_ids.long()
             ids_valid = label.phrase_valid  # true => is fed into model
-            ids_mask = label.loss_masking # true => takes part in loss
+            ids_mask = label.loss_masking  # true => takes part in loss
 
-        inputs = self.embed_tokens(ids.clamp(min=0, max=self.embed_tokens.num_embeddings - 1))
-        return {"inputs": inputs, "inputs_mask": ids_valid, "_ids": ids, "_ids_mask": ids_mask}
+        inputs = self.embed_tokens(
+            ids.clamp(min=0, max=self.embed_tokens.num_embeddings - 1)
+        )
+        return {
+            "inputs": inputs,
+            "inputs_mask": ids_valid,
+            "_ids": ids,
+            "_ids_mask": ids_mask,
+        }
 
     def compute_loss(
-        self, adaptor_features: Tensor, adaptor_logits: Tensor, inputs: Dict[str, Tensor], example: DrivingExample
+        self,
+        adaptor_features: Tensor,
+        adaptor_logits: Tensor,
+        inputs: Dict[str, Tensor],
+        example: DrivingExample,
     ) -> Dict[str, Tuple[Tensor, Tensor]]:
         del example
 
@@ -269,9 +310,13 @@ class LanguageAdaptor(nn.Module):
         # Shift by 1 for next token prediction
         labels = labels[:, 1:]
         language_loss = F.cross_entropy(
-            adaptor_logits.flatten(0, -2), labels.flatten(), ignore_index=-1, reduction="none"
+            adaptor_logits.flatten(0, -2),
+            labels.flatten(),
+            ignore_index=-1,
+            reduction="none",
         ).view_as(labels)
         return {"language_loss": (language_loss, labels.ne(-1))}
+
 
 class AdaptorList(nn.Module):
     """
@@ -319,9 +364,15 @@ class AdaptorList(nn.Module):
         arange = torch.arange(inputs.size(0), device=inputs.device)[:, None]
 
         # Apply random permutation of modalities during training
-        rand_perm = torch.arange(inputs.size(1), device=inputs.device).expand(inputs.size(0), -1)
+        rand_perm = torch.arange(inputs.size(1), device=inputs.device).expand(
+            inputs.size(0), -1
+        )
         # Apply permutation to move invalid tokens to end of sequence
-        valid_perm = inputs_mask[arange, rand_perm].byte().argsort(dim=-1, descending=True, stable=True)
+        valid_perm = (
+            inputs_mask[arange, rand_perm]
+            .byte()
+            .argsort(dim=-1, descending=True, stable=True)
+        )
         perm = rand_perm.gather(1, valid_perm)
 
         input_dict["inputs"] = inputs[arange, perm]
@@ -331,7 +382,11 @@ class AdaptorList(nn.Module):
         return input_dict
 
     def compute_loss(
-        self, features: Tensor, logits: Tensor, input_dict: Dict[str, Tensor], example: DrivingExample
+        self,
+        features: Tensor,
+        logits: Tensor,
+        input_dict: Dict[str, Tensor],
+        example: DrivingExample,
     ) -> Dict[str, Tuple[Tensor, Tensor]]:
         """
         Distributes the output embeddings from the transformer to
@@ -349,12 +404,16 @@ class AdaptorList(nn.Module):
             adaptor_input_dict = _gather_from_dict(input_dict, key + "_")
             adaptor_features = features_by_adaptor[key]
             adaptor_logits = logits_by_adaptor[key]
-            losses = adaptor.compute_loss(adaptor_features, adaptor_logits, adaptor_input_dict, example)
+            losses = adaptor.compute_loss(
+                adaptor_features, adaptor_logits, adaptor_input_dict, example
+            )
             loss_dict.update(losses)
 
         return loss_dict
 
-    def split_outputs_by_adaptor(self, input_dict: Dict[str, Tensor], outputs: Tensor) -> Dict[str, Tensor]:
+    def split_outputs_by_adaptor(
+        self, input_dict: Dict[str, Tensor], outputs: Tensor
+    ) -> Dict[str, Tensor]:
         """
         Splits the output tensor into the correct output for each adaptor, according to the
         split_sizes in the input_dict.

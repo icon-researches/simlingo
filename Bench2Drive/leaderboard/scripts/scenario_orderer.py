@@ -15,7 +15,6 @@ import carla
 from agents.navigation.global_route_planner import GlobalRoutePlanner
 
 SCENARIO_TYPES = {
-
     # Junction scenarios
     "SignalizedJunctionLeftTurn": [
         ["flow_speed", "value"],
@@ -39,28 +38,22 @@ SCENARIO_TYPES = {
     "OppositeVehicleTakingPriority": [
         ["direction", "choice"],
     ],
-
     # Crossing actors
     "DynamicObjectCrossing": [
         ["distance", "value"],
         ["direction", "value"],
         ["blocker_model", "value"],
-        ["crossing_angle", "value"]
+        ["crossing_angle", "value"],
     ],
     "ParkingCrossingPedestrian": [
         ["distance", "value"],
         ["direction", "choice"],
         ["crossing_angle", "value"],
     ],
-    "PedestrianCrossing": [
-    ],
-    "VehicleTurningRoute": [
-    ],
-    "VehicleTurningRoutePedestrian": [
-    ],
-    "BlockedIntersection": [
-    ],
-
+    "PedestrianCrossing": [],
+    "VehicleTurningRoute": [],
+    "VehicleTurningRoutePedestrian": [],
+    "BlockedIntersection": [],
     # Actor flows
     "EnterActorFlow": [
         ["start_actor_flow", "location driving"],
@@ -109,7 +102,6 @@ SCENARIO_TYPES = {
         ["flow_speed", "value"],
         ["source_dist_interval", "interval"],
     ],
-
     # Route obstacles
     "ConstructionObstacle": [
         ["distance", "value"],
@@ -158,7 +150,6 @@ SCENARIO_TYPES = {
         ["distance", "value"],
         ["offset", "value"],
     ],
-
     # Cut ins
     "HighwayCutIn": [
         ["other_actor_location", "location driving"],
@@ -170,12 +161,9 @@ SCENARIO_TYPES = {
         ["distance", "value"],
         ["direction", "choice"],
     ],
-
     # Others
-    "ControlLoss": [
-    ],
-    "HardBreakRoute": [
-    ],
+    "ControlLoss": [],
+    "HardBreakRoute": [],
     "ParkingExit": [
         ["direction", "choice"],
         ["front_vehicle_distance", "value"],
@@ -184,7 +172,6 @@ SCENARIO_TYPES = {
     "YieldToEmergencyVehicle": [
         ["distance", "value"],
     ],
-
     # Special ones
     "BackgroundActivityParametrizer": [
         ["num_front_vehicles", "value"],
@@ -199,9 +186,7 @@ SCENARIO_TYPES = {
         ["junction_spawn_dist", "value"],
         ["junction_source_perc", "value"],
     ],
-    "PriorityAtJunction": [
-    ],
-
+    "PriorityAtJunction": [],
 }
 
 MAPS_LOCATIONS = {
@@ -226,14 +211,19 @@ MAPS_LOCATIONS = {
     "Town13": "Unreal/CarlaUE4/Content/Carla/Maps/Town13/OpenDrive/Town13.xodr",
 }
 
+
 def order_saved_scenarios(filename, route_id, tmap, grp):
     def convert_elem_to_location(elem):
         """Convert an ElementTree.Element to a CARLA Location"""
-        return carla.Location(float(elem.attrib.get('x')), float(elem.attrib.get('y')), float(elem.attrib.get('z')))
+        return carla.Location(
+            float(elem.attrib.get("x")),
+            float(elem.attrib.get("y")),
+            float(elem.attrib.get("z")),
+        )
 
     def get_scenario_route_position(trigger_location):
         position = 0
-        distance = float('inf')
+        distance = float("inf")
         for i, (wp, _) in enumerate(route_wps):
             route_distance = wp.transform.location.distance(trigger_location)
             if route_distance < distance:
@@ -250,7 +240,7 @@ def order_saved_scenarios(filename, route_id, tmap, grp):
             if not elem.tail or not elem.tail.strip():
                 elem.tail = i
             for subelem in elem:
-                indent(subelem, spaces, level+1)
+                indent(subelem, spaces, level + 1)
         else:
             if level and (not elem.tail or not elem.tail.strip()):
                 elem.tail = i
@@ -265,28 +255,30 @@ def order_saved_scenarios(filename, route_id, tmap, grp):
     scenarios = []
 
     for route in root.iter("route"):
-        if route.attrib['id'] != route_id:
+        if route.attrib["id"] != route_id:
             continue
 
         # Scenarios data
-        for scenario in route.find('scenarios').iter('scenario'):
+        for scenario in route.find("scenarios").iter("scenario"):
             scenarios.append(scenario)
 
         # Route data
-        for position in route.find('waypoints').iter('position'):
+        for position in route.find("waypoints").iter("position"):
             route_keypoint = convert_elem_to_location(position)
             if prev_route_keypoint:
                 route_wps.extend(grp.trace_route(prev_route_keypoint, route_keypoint))
             prev_route_keypoint = route_keypoint
 
     if scenarios is None:
-        print(f"\n\033[91mCouldn't find the id '{route_id} in the given routes file\033[0m")
+        print(
+            f"\n\033[91mCouldn't find the id '{route_id} in the given routes file\033[0m"
+        )
         return
 
     # Order the scenarios according to route position
     scenario_and_pos = []
     for scenario in scenarios:
-        trigger_location = convert_elem_to_location(scenario.find('trigger_point'))
+        trigger_location = convert_elem_to_location(scenario.find("trigger_point"))
         route_position = get_scenario_route_position(trigger_location)
         scenario_and_pos.append([scenario, route_position])
     scenario_and_pos = sorted(scenario_and_pos, key=lambda x: x[1])
@@ -297,7 +289,7 @@ def order_saved_scenarios(filename, route_id, tmap, grp):
         scenario_names[scen_type] = 1
 
     for scenario, _ in scenario_and_pos:
-        scen_type = scenario.attrib['type']
+        scen_type = scenario.attrib["type"]
         scen_name = f"{scen_type}_{scenario_names[scen_type]}"
         scenario.set("name", scen_name)
         scenario_names[scen_type] += 1
@@ -307,39 +299,57 @@ def order_saved_scenarios(filename, route_id, tmap, grp):
     indent(tree.getroot(), spaces)
     tree.write(filename)
 
-    with open(filename, 'r') as f:
+    with open(filename, "r") as f:
         data = f.read()
     temp = data.replace("   </", "</")  # The 'indent' function fails for these cases
 
-    weather_spaces = spaces*4*" "
+    weather_spaces = spaces * 4 * " "
     temp = temp.replace(" cloudiness", "\n" + weather_spaces + "cloudiness")
     temp = temp.replace(" wind_intensity", "\n" + weather_spaces + "wind_intensity")
     temp = temp.replace(" fog_density", "\n" + weather_spaces + "fog_density")
-    new_data = temp.replace(" mie_scattering_scale", "\n" + weather_spaces + "mie_scattering_scale")
+    new_data = temp.replace(
+        " mie_scattering_scale", "\n" + weather_spaces + "mie_scattering_scale"
+    )
 
-    with open(filename, 'w') as f:
+    with open(filename, "w") as f:
         f.write(new_data)
+
 
 def main():
     argparser = argparse.ArgumentParser(description=__doc__)
-    argparser.add_argument('--host', metavar='H', default='localhost', help='IP of the host CARLA Simulator (default: localhost)')
-    argparser.add_argument('--port', metavar='P', default=2000, type=int, help='TCP port of CARLA Simulator (default: 2000)')
-    argparser.add_argument('-f', '--file', required=True, help='File at which to place the scenarios')
+    argparser.add_argument(
+        "--host",
+        metavar="H",
+        default="localhost",
+        help="IP of the host CARLA Simulator (default: localhost)",
+    )
+    argparser.add_argument(
+        "--port",
+        metavar="P",
+        default=2000,
+        type=int,
+        help="TCP port of CARLA Simulator (default: 2000)",
+    )
+    argparser.add_argument(
+        "-f", "--file", required=True, help="File at which to place the scenarios"
+    )
     args = argparser.parse_args()
 
     root = etree.parse(args.file).getroot()
     prev_town = None
     for route in root.iter("route"):
 
-        route_id = route.attrib['id']
-        route_town = route.attrib['town']
+        route_id = route.attrib["id"]
+        route_town = route.attrib["town"]
 
         if route_town not in MAPS_LOCATIONS:
-            print(f"Ignoring route '{route_id}' as it uses an unknown map '{route_town}")
+            print(
+                f"Ignoring route '{route_id}' as it uses an unknown map '{route_town}"
+            )
             continue
         elif route_town != prev_town:
             full_name = os.environ["CARLA_ROOT"] + "/" + MAPS_LOCATIONS[route_town]
-            with open(full_name, 'r') as f:
+            with open(full_name, "r") as f:
                 map_contents = f.read()
             tmap = carla.Map(route_town, map_contents)
             grp = GlobalRoutePlanner(tmap, 1.0)

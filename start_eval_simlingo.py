@@ -6,6 +6,7 @@ import ujson
 import shutil
 from tqdm.autonotebook import tqdm
 
+
 # %%
 def get_num_jobs(job_name, username):
     len_usrn = len(username)
@@ -13,14 +14,18 @@ def get_num_jobs(job_name, username):
         subprocess.check_output(
             f"SQUEUE_FORMAT2='username:{len_usrn},name:130' squeue --sort V | grep {username} | grep {job_name} | wc -l",
             shell=True,
-        ).decode('utf-8').replace('\n', ''))
+        )
+        .decode("utf-8")
+        .replace("\n", "")
+    )
     try:
-        with open('max_num_jobs.txt', 'r', encoding='utf-8') as f:
+        with open("max_num_jobs.txt", "r", encoding="utf-8") as f:
             max_num_parallel_jobs = int(f.read())
     except:
         max_num_parallel_jobs = 1
 
     return num_running_jobs, max_num_parallel_jobs
+
 
 # %%
 def bash_file_bench2drive(job, port, tm_port, partition_name):
@@ -34,8 +39,8 @@ def bash_file_bench2drive(job, port, tm_port, partition_name):
     err_file = job["err_file"]
     job_file = job["job_file"]
 
-    with open(job_file, 'w', encoding='utf-8') as rsh:
-            rsh.write(f'''#!/bin/bash
+    with open(job_file, "w", encoding="utf-8") as rsh:
+        rsh.write(f"""#!/bin/bash
 #SBATCH --job-name={cfg["agent"]}_{seed}_{cfg["benchmark"]}_{route_id}
 #SBATCH --partition={partition_name}
 #SBATCH -o {log_file}
@@ -75,14 +80,17 @@ python -u {cfg["repo_root"]}/Bench2Drive/leaderboard/leaderboard/leaderboard_eva
 --traffic-manager-seed={seed} \
 --port={port} \
 --traffic-manager-port={tm_port}
-''')
+""")
 
 
 # %%
 def get_running_jobs():
-    running_jobs = subprocess.check_output(f'squeue --me',shell=True).decode('utf-8').splitlines()
+    running_jobs = (
+        subprocess.check_output(f"squeue --me", shell=True).decode("utf-8").splitlines()
+    )
     running_jobs = set(x.strip().split(" ")[0] for x in running_jobs[1:])
     return running_jobs
+
 
 # %%
 def filter_completed(jobs):
@@ -93,9 +101,9 @@ def filter_completed(jobs):
 
         # If job is running we keep it in list (other function does killing)
         if "job_id" in job:
-           if job["job_id"] in running_jobs:
-              filtered_jobs.append(job)
-              continue
+            if job["job_id"] in running_jobs:
+                filtered_jobs.append(job)
+                continue
 
         # Keep failed jobs to resubmit
         result_file = job["result_file"]
@@ -108,21 +116,20 @@ def filter_completed(jobs):
                     filtered_jobs.append(job)
                     continue
 
-
-            progress = evaluation_data['_checkpoint']['progress']
+            progress = evaluation_data["_checkpoint"]["progress"]
 
             need_to_resubmit = False
             if len(progress) < 2 or progress[0] < progress[1]:
                 need_to_resubmit = True
             else:
-                for record in evaluation_data['_checkpoint']['records']:
-                    if record['status'] == 'Failed - Agent couldn\'t be set up':
+                for record in evaluation_data["_checkpoint"]["records"]:
+                    if record["status"] == "Failed - Agent couldn't be set up":
                         need_to_resubmit = True
-                    elif record['status'] == 'Failed':
+                    elif record["status"] == "Failed":
                         need_to_resubmit = True
-                    elif record['status'] == 'Failed - Simulation crashed':
+                    elif record["status"] == "Failed - Simulation crashed":
                         need_to_resubmit = True
-                    elif record['status'] == 'Failed - Agent crashed':
+                    elif record["status"] == "Failed - Agent crashed":
                         need_to_resubmit = True
 
             if need_to_resubmit and job["tries"] > 0:
@@ -131,6 +138,7 @@ def filter_completed(jobs):
         elif job["tries"] > 0:
             filtered_jobs.append(job)
     return filtered_jobs
+
 
 # %%
 def kill_dead_jobs(jobs):
@@ -145,7 +153,7 @@ def kill_dead_jobs(jobs):
         elif os.path.exists(job["log_file"]):
             with open(job["log_file"], "r") as f:
                 job_id = f.readline().strip().replace("JOB ID ", "")
-        
+
         else:
             continue
 
@@ -158,44 +166,54 @@ def kill_dead_jobs(jobs):
 
         with open(log) as f:
             lines = f.readlines()
-        if len(lines)==0:
+        if len(lines) == 0:
             continue
 
         # TODO this needs to be improved, maybe also consider the err file?
-        if any(["Watchdog exception" in line for line in lines]) or \
-            "Engine crash handling finished; re-raising signal 11 for the default handler. Good bye.\n" in lines or \
-            "[91mStopping the route, the agent has crashed:\n" in lines:
+        if (
+            any(["Watchdog exception" in line for line in lines])
+            or "Engine crash handling finished; re-raising signal 11 for the default handler. Good bye.\n"
+            in lines
+            or "[91mStopping the route, the agent has crashed:\n" in lines
+        ):
 
             subprocess.Popen(f"scancel {job_id}", shell=True)
 
+
 configs = [
     {
-    "agent": "simlingo",
-    "checkpoint": "/PATH/TO/REPO/outputs/simlingo/checkpoints/epoch=013.ckpt/pytorch_model.pt",
-    "benchmark": "bench2drive",
-    "route_path": "/PATH/TO/REPO/leaderboard/data/bench2drive_split",
-    "seeds": [1,2,3], # TODO: change depending on how many eval seeds you wanna run (paper uses one eval seed on three train seeds)
-    "tries": 2,
-    "out_root": "/PATH/TO/REPO/eval_results/Bench2Drive",
-    "carla_root": "~/software/carla0915",
-    "repo_root": "/PATH/TO/REPO",
-    "agent_file": "/PATH/TO/REPO/team_code/agent_simlingo.py",
-    "team_code": "team_code",
-    "agent_config": "not_used",
-    "username": "YOUR_USERNAME"
+        "agent": "simlingo",
+        "checkpoint": "/PATH/TO/REPO/outputs/simlingo/checkpoints/epoch=013.ckpt/pytorch_model.pt",
+        "benchmark": "bench2drive",
+        "route_path": "/PATH/TO/REPO/leaderboard/data/bench2drive_split",
+        "seeds": [
+            1,
+            2,
+            3,
+        ],  # TODO: change depending on how many eval seeds you wanna run (paper uses one eval seed on three train seeds)
+        "tries": 2,
+        "out_root": "/PATH/TO/REPO/eval_results/Bench2Drive",
+        "carla_root": "~/software/carla0915",
+        "repo_root": "/PATH/TO/REPO",
+        "agent_file": "/PATH/TO/REPO/team_code/agent_simlingo.py",
+        "team_code": "team_code",
+        "agent_config": "not_used",
+        "username": "YOUR_USERNAME",
     }
-    ] # TODO: change to your paths and model, you can add multiple configs here, whch get evaluated after each other
+]  # TODO: change to your paths and model, you can add multiple configs here, whch get evaluated after each other
 
 
 # %%
 job_queue = []
 for cfg_idx, cfg in enumerate(configs):
     route_path = cfg["route_path"]
-    routes = [x for x in os.listdir(route_path) if x[-4:]==".xml"] #########################################
+    routes = [
+        x for x in os.listdir(route_path) if x[-4:] == ".xml"
+    ]  #########################################
 
     if cfg["benchmark"] == "bench2drive":
         fill_zeros = 3
-    else: 
+    else:
         fill_zeros = 2
 
     for seed in cfg["seeds"]:
@@ -218,8 +236,8 @@ for cfg_idx, cfg in enumerate(configs):
             log_file = os.path.join(base_dir, "out", f"{route_id}_out.log")
             err_file = os.path.join(base_dir, "err", f"{route_id}_err.log")
 
-            job_file = os.path.join(base_dir, "run", f'eval_{route_id}.sh')
-            
+            job_file = os.path.join(base_dir, "run", f"eval_{route_id}.sh")
+
             job = {
                 "cfg": cfg,
                 "route": route,
@@ -230,7 +248,7 @@ for cfg_idx, cfg in enumerate(configs):
                 "log_file": log_file,
                 "err_file": err_file,
                 "job_file": job_file,
-                "tries": cfg["tries"]
+                "tries": cfg["tries"],
             }
 
             job_queue.append(job)
@@ -242,7 +260,7 @@ carla_tm_ports = set(range(30000, 40000, 50))
 
 # %%
 jobs = len(job_queue)
-progress = tqdm(total = jobs)
+progress = tqdm(total=jobs)
 partition_name = "2080-galvani"
 while job_queue:
     kill_dead_jobs(job_queue)
@@ -257,7 +275,7 @@ while job_queue:
         if "job_id" in job and job["job_id"] in running_jobs:
             used_ports.update(job["ports"])
 
-    with open('max_num_jobs.txt', 'r', encoding='utf-8') as f:
+    with open("max_num_jobs.txt", "r", encoding="utf-8") as f:
         max_num_parallel_jobs = int(f.read())
 
     if len(running_jobs) >= max_num_parallel_jobs:
@@ -268,7 +286,9 @@ while job_queue:
         if job["tries"] <= 0:
             continue
 
-        if "job_id" in job and job["job_id"] in running_jobs: # Das funktioniert nicht wenn man neu startet...
+        if (
+            "job_id" in job and job["job_id"] in running_jobs
+        ):  # Das funktioniert nicht wenn man neu startet...
             continue
 
         if os.path.exists(job["log_file"]):
@@ -281,20 +301,31 @@ while job_queue:
         # Need to submit this job
         # Make bash file:
         carla_world_port_start = next(iter(carla_world_ports.difference(used_ports)))
-        carla_streaming_port_start = next(iter(carla_streaming_ports.difference(used_ports)))
+        carla_streaming_port_start = next(
+            iter(carla_streaming_ports.difference(used_ports))
+        )
         carla_tm_port_start = next(iter(carla_tm_ports.difference(used_ports)))
 
         if job["cfg"]["benchmark"].lower() == "bench2drive":
-            bash_file_bench2drive(job, carla_tm_port_start, carla_world_port_start, partition_name)
+            bash_file_bench2drive(
+                job, carla_tm_port_start, carla_world_port_start, partition_name
+            )
             job["ports"] = {carla_world_port_start, carla_tm_port_start}
         else:
-            raise NotImplementedError(f"Benchmark {job['cfg']['benchmark']} not implemented.")
+            raise NotImplementedError(
+                f"Benchmark {job['cfg']['benchmark']} not implemented."
+            )
 
         # submit
         shutil.rmtree(job["viz_path"])
         os.mkdir(job["viz_path"])
-        job_id = subprocess.check_output(f'sbatch {job["job_file"]}', shell=True).decode('utf-8').strip().rsplit(' ', maxsplit=1)[-1]
-        
+        job_id = (
+            subprocess.check_output(f'sbatch {job["job_file"]}', shell=True)
+            .decode("utf-8")
+            .strip()
+            .rsplit(" ", maxsplit=1)[-1]
+        )
+
         job["job_id"] = job_id
         job["tries"] -= 1
 

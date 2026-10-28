@@ -17,7 +17,6 @@ from srunner.tools.route_manipulation import downsample_route
 
 
 class AutonomousAgent(object):
-
     """
     Autonomous agent base class. All user agents have to be derived from this class
     """
@@ -90,7 +89,11 @@ class AutonomousAgent(object):
 
         timestamp = GameTime.get_time()
         wallclock = GameTime.get_wallclocktime()
-        print('======[Agent] Wallclock_time = {} / Sim_time = {}'.format(wallclock, timestamp))
+        print(
+            "======[Agent] Wallclock_time = {} / Sim_time = {}".format(
+                wallclock, timestamp
+            )
+        )
 
         control = self.run_step(input_data, timestamp)
         control.manual_gear_shift = False
@@ -103,6 +106,8 @@ class AutonomousAgent(object):
         """
 
         ds_ids = downsample_route(global_plan_world_coord, 1)
-        self._global_plan_world_coord = [(global_plan_world_coord[x][0], global_plan_world_coord[x][1])
-                                         for x in ds_ids]
+        self._global_plan_world_coord = [
+            (global_plan_world_coord[x][0], global_plan_world_coord[x][1])
+            for x in ds_ids
+        ]
         self._global_plan = [global_plan_gps[x] for x in ds_ids]

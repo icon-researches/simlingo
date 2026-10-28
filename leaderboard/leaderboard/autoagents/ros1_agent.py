@@ -11,13 +11,17 @@ from __future__ import print_function
 
 import time
 
-from leaderboard.autoagents.ros_base_agent import BridgeHelper, ROSBaseAgent, ROSLauncher
+from leaderboard.autoagents.ros_base_agent import (
+    BridgeHelper,
+    ROSBaseAgent,
+    ROSLauncher,
+)
 
 import roslibpy
 
 
 class ROS1Server(object):
-    client = roslibpy.Ros(host='localhost', port=9090)
+    client = roslibpy.Ros(host="localhost", port=9090)
 
     def __init__(self, debug=True):
         self._server_process = ROSLauncher("server", ros_version=1, debug=debug)
@@ -26,7 +30,7 @@ class ROS1Server(object):
         self._server_process.run(
             package="rosbridge_server",
             launch_file="rosbridge_websocket.launch",
-            wait=False
+            wait=False,
         )
         ROS1Server.client.run(30)
 
@@ -41,6 +45,7 @@ def wait_for_message(client, topic, topic_type, timeout=None):
     class _WFM(object):
         def __init__(self):
             self.msg = None
+
         def cb(self, msg):
             if self.msg is None:
                 self.msg = msg
@@ -55,7 +60,11 @@ def wait_for_message(client, topic, topic_type, timeout=None):
         while client.is_connected and wfm.msg is None:
             time.sleep(0.1)
             if timeout is not None and time.time() >= timeout_t:
-                raise TimeoutError("timeout exceeded while waiting for message on topic {}".format(topic))
+                raise TimeoutError(
+                    "timeout exceeded while waiting for message on topic {}".format(
+                        topic
+                    )
+                )
 
     finally:
         if s is not None:
@@ -73,7 +82,11 @@ def wait_for_service(client, service, timeout=None):
     while service not in services:
         time.sleep(0.1)
         if timeout is not None and time.time() >= timeout_t:
-            raise TimeoutError("timeout exceeded while waiting for service {} to be ready".format(service))
+            raise TimeoutError(
+                "timeout exceeded while waiting for service {} to be ready".format(
+                    service
+                )
+            )
         services = client.get_services()
 
 
@@ -86,17 +99,45 @@ class ROS1Agent(ROSBaseAgent):
 
         client = ROS1Server.client
 
-        self._spawn_object_service = roslibpy.Service(client, "/carla/spawn_object", "carla_msgs/SpawnObject", reconnect_on_close=False)
-        self._destroy_object_service = roslibpy.Service(client, "/carla/destroy_object", "carla_msgs/DestroyObject", reconnect_on_close=False)
+        self._spawn_object_service = roslibpy.Service(
+            client,
+            "/carla/spawn_object",
+            "carla_msgs/SpawnObject",
+            reconnect_on_close=False,
+        )
+        self._destroy_object_service = roslibpy.Service(
+            client,
+            "/carla/destroy_object",
+            "carla_msgs/DestroyObject",
+            reconnect_on_close=False,
+        )
 
         wait_for_service(client, "/carla/spawn_object")
         wait_for_service(client, "/carla/destroy_object")
 
-        self._control_subscriber = roslibpy.Topic(client, "/carla/hero/vehicle_control_cmd", "carla_msgs/CarlaEgoVehicleControl", queue_length=1, reconnect_on_close=False)
+        self._control_subscriber = roslibpy.Topic(
+            client,
+            "/carla/hero/vehicle_control_cmd",
+            "carla_msgs/CarlaEgoVehicleControl",
+            queue_length=1,
+            reconnect_on_close=False,
+        )
         self._control_subscriber.subscribe(self._vehicle_control_cmd_callback)
 
-        self._path_publisher = roslibpy.Topic(client, "/carla/hero/global_plan", "carla_msgs/CarlaRoute", latch=True, reconnect_on_close=False)
-        self._path_gnss_publisher = roslibpy.Topic(client, "/carla/hero/global_plan_gnss", "carla_msgs/CarlaGnssRoute", latch=True, reconnect_on_close=False)
+        self._path_publisher = roslibpy.Topic(
+            client,
+            "/carla/hero/global_plan",
+            "carla_msgs/CarlaRoute",
+            latch=True,
+            reconnect_on_close=False,
+        )
+        self._path_gnss_publisher = roslibpy.Topic(
+            client,
+            "/carla/hero/global_plan_gnss",
+            "carla_msgs/CarlaGnssRoute",
+            latch=True,
+            reconnect_on_close=False,
+        )
 
         wait_for_message(client, "/carla/hero/status", "std_msgs/Bool")
 
@@ -106,24 +147,34 @@ class ROS1Agent(ROSBaseAgent):
 
     def spawn_object(self, type_, id_, transform, attributes, attach_to=0):
         spawn_point = BridgeHelper.carla2ros_pose(
-            transform.location.x, transform.location.y, transform.location.z,
-            transform.rotation.roll, transform.rotation.pitch, transform.rotation.yaw,
-            to_quat=True
+            transform.location.x,
+            transform.location.y,
+            transform.location.z,
+            transform.rotation.roll,
+            transform.rotation.pitch,
+            transform.rotation.yaw,
+            to_quat=True,
         )
-        attributes = [{"key": str(key), "value": str(value)} for key, value in attributes.items()]
+        attributes = [
+            {"key": str(key), "value": str(value)} for key, value in attributes.items()
+        ]
 
-        request = roslibpy.ServiceRequest({
-            "type": type_,
-            "id": id_,
-            "attach_to": attach_to,
-            "transform": spawn_point,
-            "random_pose": False,
-            "attributes": attributes,
-        })
+        request = roslibpy.ServiceRequest(
+            {
+                "type": type_,
+                "id": id_,
+                "attach_to": attach_to,
+                "transform": spawn_point,
+                "random_pose": False,
+                "attributes": attributes,
+            }
+        )
 
         response = self._spawn_object_service.call(request)
         if response["id"] == -1:
-            raise RuntimeError("{} could not be spawned. {}".format(type_, response["error_string"]))
+            raise RuntimeError(
+                "{} could not be spawned. {}".format(type_, response["error_string"])
+            )
         return response["id"]
 
     def destroy_object(self, uid):
@@ -141,29 +192,46 @@ class ROS1Agent(ROSBaseAgent):
 
         poses = []
         for wp in self._global_plan_world_coord:
-            poses.append(BridgeHelper.carla2ros_pose(
-                wp[0].location.x, wp[0].location.y, wp[0].location.z,
-                wp[0].rotation.roll, wp[0].rotation.pitch, wp[0].rotation.yaw,
-                to_quat=True
-            ))
+            poses.append(
+                BridgeHelper.carla2ros_pose(
+                    wp[0].location.x,
+                    wp[0].location.y,
+                    wp[0].location.z,
+                    wp[0].rotation.roll,
+                    wp[0].rotation.pitch,
+                    wp[0].rotation.yaw,
+                    to_quat=True,
+                )
+            )
 
-        self._path_publisher.publish(roslibpy.Message(
-            {
-                "header": {
-                    "frame_id": "/map"
-                },
-                "road_options": [ int(wp[1]) for wp in self._global_plan_world_coord ],
-                "poses": [ pose for pose in poses ]
-            }))
+        self._path_publisher.publish(
+            roslibpy.Message(
+                {
+                    "header": {"frame_id": "/map"},
+                    "road_options": [
+                        int(wp[1]) for wp in self._global_plan_world_coord
+                    ],
+                    "poses": [pose for pose in poses],
+                }
+            )
+        )
 
-        self._path_gnss_publisher.publish(roslibpy.Message(
-            {
-                "header": {
-                    "frame_id": "/map"
-                },
-                "road_options": [ int(wp[1]) for wp in self._global_plan ],
-                "coordinates": [ {"latitude": wp[0]["lat"], "longitude": wp[0]["lon"], "altitude": wp[0]["z"]} for wp in self._global_plan ]
-            }))
+        self._path_gnss_publisher.publish(
+            roslibpy.Message(
+                {
+                    "header": {"frame_id": "/map"},
+                    "road_options": [int(wp[1]) for wp in self._global_plan],
+                    "coordinates": [
+                        {
+                            "latitude": wp[0]["lat"],
+                            "longitude": wp[0]["lon"],
+                            "altitude": wp[0]["z"],
+                        }
+                        for wp in self._global_plan
+                    ],
+                }
+            )
+        )
 
     def destroy(self):
         """

@@ -14,14 +14,14 @@ from hydra.utils import get_original_cwd, to_absolute_path
 
 
 def setup_logging(cfg, save_folder=None):
-    
+
     if save_folder is None:
         working_dir = get_original_cwd()
-        save_folder = 'log'
+        save_folder = "log"
     else:
         # get working dir
         working_dir = os.getcwd()
-        save_folder = save_folder + '/log'
+        save_folder = save_folder + "/log"
     # Log args
     # Path(save_folder).mkdir(parents=True, exist_ok=True)
     Path(save_folder).mkdir(parents=True, exist_ok=True)
@@ -32,9 +32,7 @@ def setup_logging(cfg, save_folder=None):
 
     # Log git
     sha = (
-        subprocess.check_output(
-            ["git", "-C", f"{working_dir}", "rev-parse", "HEAD"]
-        )
+        subprocess.check_output(["git", "-C", f"{working_dir}", "rev-parse", "HEAD"])
         .decode("ascii")
         .strip()
     )

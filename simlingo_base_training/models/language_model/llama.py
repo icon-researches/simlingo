@@ -4,26 +4,80 @@ from torch.nn import functional as F
 from transformers import AutoTokenizer, LlamaConfig, LlamaModel
 from typing import Any, Dict, Optional, Tuple
 
-
 CONFIGS: Dict[str, Dict[str, Any]] = {
-    "debug": dict(num_hidden_layers=2, num_attention_heads=2, hidden_size=32, intermediate_size=64),
-    "legacy-tiny": dict(num_hidden_layers=8, num_attention_heads=16, hidden_size=2048, intermediate_size=4096),
+    "debug": dict(
+        num_hidden_layers=2, num_attention_heads=2, hidden_size=32, intermediate_size=64
+    ),
+    "legacy-tiny": dict(
+        num_hidden_layers=8,
+        num_attention_heads=16,
+        hidden_size=2048,
+        intermediate_size=4096,
+    ),
     # -- auto-regressive driving models --
-    "tiny": dict(num_hidden_layers=12, num_attention_heads=8, hidden_size=512, intermediate_size=2048),  # 50M
-    "x-small": dict(num_hidden_layers=14, num_attention_heads=8, hidden_size=1024, intermediate_size=4096),  # 235M
-    "small": dict(num_hidden_layers=22, num_attention_heads=8, hidden_size=1024, intermediate_size=4096),  # 369M
-    "medium": dict(num_hidden_layers=22, num_attention_heads=12, hidden_size=1536, intermediate_size=4096),  # 623M
-    "large": dict(num_hidden_layers=22, num_attention_heads=16, hidden_size=2048, intermediate_size=5632),  # 1.1B
+    "tiny": dict(
+        num_hidden_layers=12,
+        num_attention_heads=8,
+        hidden_size=512,
+        intermediate_size=2048,
+    ),  # 50M
+    "x-small": dict(
+        num_hidden_layers=14,
+        num_attention_heads=8,
+        hidden_size=1024,
+        intermediate_size=4096,
+    ),  # 235M
+    "small": dict(
+        num_hidden_layers=22,
+        num_attention_heads=8,
+        hidden_size=1024,
+        intermediate_size=4096,
+    ),  # 369M
+    "medium": dict(
+        num_hidden_layers=22,
+        num_attention_heads=12,
+        hidden_size=1536,
+        intermediate_size=4096,
+    ),  # 623M
+    "large": dict(
+        num_hidden_layers=22,
+        num_attention_heads=16,
+        hidden_size=2048,
+        intermediate_size=5632,
+    ),  # 1.1B
     # -- gaia world models --
-    "gaia-large": dict(num_hidden_layers=22, num_attention_heads=16, hidden_size=1536, intermediate_size=4096),  # 623M
+    "gaia-large": dict(
+        num_hidden_layers=22,
+        num_attention_heads=16,
+        hidden_size=1536,
+        intermediate_size=4096,
+    ),  # 623M
     # -- language models --
-    "7B": dict(num_hidden_layers=32, num_attention_heads=32, hidden_size=4096, intermediate_size=11008),  # 6476M
-    "13B": dict(num_hidden_layers=40, num_attention_heads=40, hidden_size=5120, intermediate_size=11008),
+    "7B": dict(
+        num_hidden_layers=32,
+        num_attention_heads=32,
+        hidden_size=4096,
+        intermediate_size=11008,
+    ),  # 6476M
+    "13B": dict(
+        num_hidden_layers=40,
+        num_attention_heads=40,
+        hidden_size=5120,
+        intermediate_size=11008,
+    ),
     "70B": dict(
-        num_hidden_layers=80, num_attention_heads=64, hidden_size=8192, intermediate_size=28672, num_key_value_heads=8
+        num_hidden_layers=80,
+        num_attention_heads=64,
+        hidden_size=8192,
+        intermediate_size=28672,
+        num_key_value_heads=8,
     ),
     "tiny-llama-1.1b": dict(  # 969M
-        num_hidden_layers=22, num_attention_heads=32, hidden_size=2048, intermediate_size=5632, num_key_value_heads=4
+        num_hidden_layers=22,
+        num_attention_heads=32,
+        hidden_size=2048,
+        intermediate_size=5632,
+        num_key_value_heads=4,
     ),
     "phi": dict(
         num_hidden_layers=24,
@@ -50,8 +104,10 @@ class Llama(nn.Module):
 
         # Initializing a model from the llama-7b style configuration
         self.model = LlamaModel(configuration)
-        self.tokenizer = AutoTokenizer.from_pretrained("meta-llama/Llama-2-7b-hf") # Add huggingface token
-        self.model.embed_tokens = None 
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            "meta-llama/Llama-2-7b-hf"
+        )  # Add huggingface token
+        self.model.embed_tokens = None
         # self.model.base_model.embed_tokens = None
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
@@ -61,11 +117,11 @@ class Llama(nn.Module):
             from peft import LoraConfig, TaskType
 
             peft_config = LoraConfig(
-                inference_mode=False, 
-                r=16, 
-                lora_alpha=32, 
+                inference_mode=False,
+                r=16,
+                lora_alpha=32,
                 lora_dropout=0.1,
-                target_modules="all-linear"
+                target_modules="all-linear",
             )
             self.model = get_peft_model(self.model, peft_config)
             self.model.print_trainable_parameters()
@@ -74,8 +130,8 @@ class Llama(nn.Module):
         self.hidden_size = self.model.config.hidden_size
         self.max_position_embeddings = self.model.config.max_position_embeddings
 
-
-    def forward(self,
+    def forward(
+        self,
         embeddings: Tensor,
         attention_mask: Tensor = None,
         return_dict: bool = True,
@@ -85,8 +141,8 @@ class Llama(nn.Module):
             inputs_embeds=embeddings,
             attention_mask=attention_mask,
             output_hidden_states=True,
-            return_dict=return_dict
-        )#.last_hidden_state
+            return_dict=return_dict,
+        )  # .last_hidden_state
         outputs = outputs.hidden_states[-1]
 
         return outputs
@@ -155,12 +211,18 @@ class Llama(nn.Module):
             logit_matrix = self.lm_head.weight
         # We generate tokens up to the eos token id if provided. If not provided, we generate until the end.
         # If no eos token id is provided, use -1 instead, so we will never stop generating until 'new_token'.
-        sampled_tokens = torch.empty((input_embeds.size(0), max_new_tokens), device=input_embeds.device, dtype=torch.long)
+        sampled_tokens = torch.empty(
+            (input_embeds.size(0), max_new_tokens),
+            device=input_embeds.device,
+            dtype=torch.long,
+        )
         if eos_token_id is not None:
             sampled_tokens.fill_(eos_token_id)
 
         # we start with all sequences left to complete
-        incomplete_seq_mask = torch.ones(input_embeds.size(0), dtype=torch.bool, device=input_embeds.device)
+        incomplete_seq_mask = torch.ones(
+            input_embeds.size(0), dtype=torch.bool, device=input_embeds.device
+        )
         for i in range(max_new_tokens):
             outputs = self.forward(embeddings=input_embeds)
             last_hidden_state = outputs[:, -1]
@@ -168,7 +230,11 @@ class Llama(nn.Module):
             # sample the next token
             logits = F.linear(last_hidden_state, logit_matrix)
             next_token = self.sample_categorical(
-                logits, temperature=temperature, top_k=top_k, top_p=top_p, restrict_tokens=restrict_tokens
+                logits,
+                temperature=temperature,
+                top_k=top_k,
+                top_p=top_p,
+                restrict_tokens=restrict_tokens,
             )
             x = F.embedding(next_token.unsqueeze(1), input_embed_matrix)
 

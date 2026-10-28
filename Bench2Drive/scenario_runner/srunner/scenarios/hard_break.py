@@ -15,24 +15,33 @@ suddenly hard breaking, forcing the ego to avoid the collision
 import py_trees
 
 from srunner.scenariomanager.scenarioatomics.atomic_behaviors import Idle
-from srunner.scenariomanager.scenarioatomics.atomic_trigger_conditions import DriveDistance
+from srunner.scenariomanager.scenarioatomics.atomic_trigger_conditions import (
+    DriveDistance,
+)
 from srunner.scenarios.basic_scenario import BasicScenario
 
 from srunner.tools.background_manager import StopFrontVehicles, StartFrontVehicles
 
 
 class HardBreakRoute(BasicScenario):
-
     """
     This class uses the is the Background Activity at routes to create a hard break scenario.
 
     This is a single ego vehicle scenario
     """
 
-    timeout = 120            # Timeout of scenario in seconds
+    timeout = 120  # Timeout of scenario in seconds
 
-    def __init__(self, world, ego_vehicles, config, randomize=False, debug_mode=False, criteria_enable=True,
-                 timeout=60):
+    def __init__(
+        self,
+        world,
+        ego_vehicles,
+        config,
+        randomize=False,
+        debug_mode=False,
+        criteria_enable=True,
+        timeout=60,
+    ):
         """
         Setup all relevant parameters and create scenario
         """
@@ -40,12 +49,14 @@ class HardBreakRoute(BasicScenario):
         self._stop_duration = 10
         self.end_distance = 15
 
-        super().__init__("HardBreak",
-                         ego_vehicles,
-                         config,
-                         world,
-                         debug_mode,
-                         criteria_enable=criteria_enable)
+        super().__init__(
+            "HardBreak",
+            ego_vehicles,
+            config,
+            world,
+            debug_mode,
+            criteria_enable=criteria_enable,
+        )
 
     def _initialize_actors(self, config):
         """

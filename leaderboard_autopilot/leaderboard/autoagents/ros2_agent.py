@@ -37,7 +37,10 @@ def wait_for_message(node, topic, topic_type, timeout=None):
             topic_type,
             topic,
             lambda msg: future.set_result(msg.data),
-            qos_profile=QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL))
+            qos_profile=QoSProfile(
+                depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL
+            ),
+        )
         rclpy.spin_until_future_complete(node, future, timeout)
 
     finally:
@@ -48,7 +51,6 @@ def wait_for_message(node, topic, topic_type, timeout=None):
 
 
 class ROS2Agent(ROSBaseAgent):
-
     """
     Autonomous agent base class. All user agents have to be derived from this class
     """
@@ -61,16 +63,37 @@ class ROS2Agent(ROSBaseAgent):
         rclpy.init(args=None)
         self.ros_node = rclpy.create_node("leaderboard_node")
 
-        self._spawn_object_service = self.ros_node.create_client(SpawnObject, "/carla/spawn_object")
-        self._destroy_object_service = self.ros_node.create_client(DestroyObject, "/carla/destroy_object")
+        self._spawn_object_service = self.ros_node.create_client(
+            SpawnObject, "/carla/spawn_object"
+        )
+        self._destroy_object_service = self.ros_node.create_client(
+            DestroyObject, "/carla/destroy_object"
+        )
 
         self._spawn_object_service.wait_for_service()
         self._destroy_object_service.wait_for_service()
 
-        self._path_publisher = self.ros_node.create_publisher(CarlaRoute, "/carla/hero/global_plan", qos_profile=QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL))
-        self._path_gnss_publisher = self.ros_node.create_publisher(CarlaGnssRoute, "/carla/hero/global_plan_gnss", qos_profile=QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL))
-        
-        self.ctrl_subscriber = self.ros_node.create_subscription(CarlaEgoVehicleControl, "/carla/hero/vehicle_control_cmd", self._vehicle_control_cmd_callback, qos_profile=QoSProfile(depth=1))
+        self._path_publisher = self.ros_node.create_publisher(
+            CarlaRoute,
+            "/carla/hero/global_plan",
+            qos_profile=QoSProfile(
+                depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL
+            ),
+        )
+        self._path_gnss_publisher = self.ros_node.create_publisher(
+            CarlaGnssRoute,
+            "/carla/hero/global_plan_gnss",
+            qos_profile=QoSProfile(
+                depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL
+            ),
+        )
+
+        self.ctrl_subscriber = self.ros_node.create_subscription(
+            CarlaEgoVehicleControl,
+            "/carla/hero/vehicle_control_cmd",
+            self._vehicle_control_cmd_callback,
+            qos_profile=QoSProfile(depth=1),
+        )
 
         wait_for_message(self.ros_node, "/carla/hero/status", Bool)
 
@@ -83,25 +106,34 @@ class ROS2Agent(ROSBaseAgent):
 
     def spawn_object(self, type_, id_, transform, attributes, attach_to=0):
         spawn_point = BridgeHelper.carla2ros_pose(
-            transform.location.x, transform.location.y, transform.location.z,
-            transform.rotation.roll, transform.rotation.pitch, transform.rotation.yaw,
-            to_quat=True
+            transform.location.x,
+            transform.location.y,
+            transform.location.z,
+            transform.rotation.roll,
+            transform.rotation.pitch,
+            transform.rotation.yaw,
+            to_quat=True,
         )
 
         request = SpawnObject.Request()
         request.type = type_
         request.id = id_
         request.attach_to = attach_to
-        request.transform = Pose(position=Point(**spawn_point["position"]), orientation=Quaternion(**spawn_point["orientation"]))
+        request.transform = Pose(
+            position=Point(**spawn_point["position"]),
+            orientation=Quaternion(**spawn_point["orientation"]),
+        )
         request.random_pose = False
-        request.attributes.extend([
-            KeyValue(key=str(k), value=str(v)) for k,v in attributes.items()
-        ])
+        request.attributes.extend(
+            [KeyValue(key=str(k), value=str(v)) for k, v in attributes.items()]
+        )
 
         # Call the service synchronously.
         response = self._spawn_object_service.call(request)
         if response.id == -1:
-            raise RuntimeError("{} could not be spawned. {}".format(type_, response["error_string"]))
+            raise RuntimeError(
+                "{} could not be spawned. {}".format(type_, response["error_string"])
+            )
         return response.id
 
     def destroy_object(self, uid):
@@ -121,19 +153,30 @@ class ROS2Agent(ROSBaseAgent):
         for wp in self._global_plan_world_coord:
             path.road_options.append(int(wp[1]))
             pose = BridgeHelper.carla2ros_pose(
-                wp[0].location.x, wp[0].location.y, wp[0].location.z,
-                wp[0].rotation.roll, wp[0].rotation.pitch, wp[0].rotation.yaw,
-                to_quat=True
+                wp[0].location.x,
+                wp[0].location.y,
+                wp[0].location.z,
+                wp[0].rotation.roll,
+                wp[0].rotation.pitch,
+                wp[0].rotation.yaw,
+                to_quat=True,
             )
             path.poses.append(
-                Pose(position=Point(**pose["position"]), orientation=Quaternion(**pose["orientation"])))
+                Pose(
+                    position=Point(**pose["position"]),
+                    orientation=Quaternion(**pose["orientation"]),
+                )
+            )
         self._path_publisher.publish(path)
 
         path_gnss = CarlaGnssRoute()
         for wp in self._global_plan:
             path_gnss.road_options.append(wp[1])
             path.poses.append(
-                NavSatFix(latitude=wp[0]["lat"], longitude=wp[0]["lon"], altitude=wp[0]["z"]))
+                NavSatFix(
+                    latitude=wp[0]["lat"], longitude=wp[0]["lon"], altitude=wp[0]["z"]
+                )
+            )
         self._path_gnss_publisher.publish(path_gnss)
 
     def destroy(self):

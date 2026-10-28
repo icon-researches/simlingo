@@ -23,13 +23,16 @@ from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
 from srunner.scenariomanager.timer import GameTime
 from srunner.scenariomanager.watchdog import Watchdog
 
-from leaderboard.autoagents.agent_wrapper import AgentWrapperFactory, AgentError, TickRuntimeError
+from leaderboard.autoagents.agent_wrapper import (
+    AgentWrapperFactory,
+    AgentError,
+    TickRuntimeError,
+)
 from leaderboard.envs.sensor_interface import SensorReceivedNoData
 from leaderboard.utils.result_writer import ResultOutputProvider
 
 
 class ScenarioManager(object):
-
     """
     Basic scenario manager class. This class holds all functionality
     required to start, run and stop a scenario.
@@ -84,9 +87,13 @@ class ScenarioManager(object):
         Terminate scenario ticking when receiving a signal interrupt
         """
         if self._agent_watchdog and not self._agent_watchdog.get_status():
-            raise RuntimeError("Agent took longer than {}s to send its command".format(self._timeout))
+            raise RuntimeError(
+                "Agent took longer than {}s to send its command".format(self._timeout)
+            )
         elif self._watchdog and not self._watchdog.get_status():
-            raise RuntimeError("The simulation took longer than {}s to update".format(self._timeout))
+            raise RuntimeError(
+                "The simulation took longer than {}s to update".format(self._timeout)
+            )
         self._running = False
 
     def cleanup(self):
@@ -154,7 +161,9 @@ class ScenarioManager(object):
         self._running = True
 
         # Thread for build_scenarios
-        self._scenario_thread = threading.Thread(target=self.build_scenarios_loop, args=(self._debug_mode > 0, ))
+        self._scenario_thread = threading.Thread(
+            target=self.build_scenarios_loop, args=(self._debug_mode > 0,)
+        )
         self._scenario_thread.start()
 
         while self._running:
@@ -199,7 +208,9 @@ class ScenarioManager(object):
             self.ego_vehicles[0].apply_control(ego_action)
 
             # Tick scenario. Add the ego control to the blackboard in case some behaviors want to change it
-            py_trees.blackboard.Blackboard().set("AV_control", ego_action, overwrite=True)
+            py_trees.blackboard.Blackboard().set(
+                "AV_control", ego_action, overwrite=True
+            )
             self.scenario_tree.tick_once()
 
             if self._debug_mode > 1:
@@ -210,13 +221,13 @@ class ScenarioManager(object):
                     self.route_index,
                     self.scenario_duration_system,
                     self.scenario_duration_game,
-                    failure_message=""
+                    failure_message="",
                 )
                 self._statistics_manager.write_live_results(
                     self.route_index,
                     self.ego_vehicles[0].get_velocity().length(),
                     ego_action,
-                    self.ego_vehicles[0].get_location()
+                    self.ego_vehicles[0].get_location(),
                 )
 
             if self._debug_mode > 2:
@@ -228,8 +239,11 @@ class ScenarioManager(object):
                 self._running = False
 
             ego_trans = self.ego_vehicles[0].get_transform()
-            self._spectator.set_transform(carla.Transform(ego_trans.location + carla.Location(z=70),
-                                                          carla.Rotation(pitch=-90)))
+            self._spectator.set_transform(
+                carla.Transform(
+                    ego_trans.location + carla.Location(z=70), carla.Rotation(pitch=-90)
+                )
+            )
 
     def get_running_status(self):
         """

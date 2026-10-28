@@ -5,7 +5,6 @@ augmentations of the full sentences, we need to merge the augmentations of the s
 This is done by this script.
 """
 
-
 import glob
 import gzip
 import random
@@ -13,32 +12,31 @@ import ujson
 from pathlib import Path
 from tqdm import tqdm
 
-
-save_path = 'data/augmented_templates'
-path = 'database/simlingo/commentary'
-augmented_sub_sentence_file = 'data/augmented_templates/commentary_subsentence.json'
-all_files = glob.glob(path + '/**/*.json.gz', recursive=True)
+save_path = "data/augmented_templates"
+path = "database/simlingo/commentary"
+augmented_sub_sentence_file = "data/augmented_templates/commentary_subsentence.json"
+all_files = glob.glob(path + "/**/*.json.gz", recursive=True)
 
 print(f"Number of files: {len(all_files)}")
 
 all_commentaries = []
 for file in tqdm(all_files):
 
-    with gzip.open(file, 'rt') as f:
+    with gzip.open(file, "rt") as f:
         data = ujson.load(f)
-        if 'commentary' in data:
-            com_template = data['commentary_template']
-            
+        if "commentary" in data:
+            com_template = data["commentary_template"]
+
             parent_folder = str(Path(file).parent)
             file_name = str(Path(file).name)
-                
-            if com_template not in all_commentaries:
-                all_commentaries.append(com_template)   
 
-print(len(all_commentaries))      
+            if com_template not in all_commentaries:
+                all_commentaries.append(com_template)
+
+print(len(all_commentaries))
 
 # get dictionary with subsentences and their augmentations
-with open(augmented_sub_sentence_file, 'r') as f:
+with open(augmented_sub_sentence_file, "r") as f:
     augmented_sub_sentences = ujson.load(f)
 
 augmentation_dict = {}
@@ -59,12 +57,14 @@ for com in tqdm(all_commentaries):
             if key in augmented_com:
                 augmented_com = augmented_com.replace(key, random.choice(value))
             elif key.lower() in augmented_com:
-                augmented_com = augmented_com.replace(key.lower(), random.choice(value).lower())
+                augmented_com = augmented_com.replace(
+                    key.lower(), random.choice(value).lower()
+                )
         if com not in augmented_commentaries:
             augmented_commentaries[com] = [augmented_com]
         else:
             augmented_commentaries[com].append(augmented_com)
 
 
-with open(f"{save_path}/commentary_augmented.json", 'w') as f:
+with open(f"{save_path}/commentary_augmented.json", "w") as f:
     ujson.dump(augmented_commentaries, f, indent=4)

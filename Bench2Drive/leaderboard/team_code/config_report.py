@@ -12,20 +12,21 @@ class GlobalConfig:
     """
     Config class that contains all the hyperparameters needed to build any model.
     """
+
     # Weather azimuths used for data collection
     # Defined outside of init because carla objects can't be pickled
     weathers = {
-        'Clear': carla.WeatherParameters.ClearNoon,
-        'Cloudy': carla.WeatherParameters.CloudySunset,
-        'Wet': carla.WeatherParameters.WetSunset,
-        'MidRain': carla.WeatherParameters.MidRainSunset,
-        'WetCloudy': carla.WeatherParameters.WetCloudySunset,
-        'HardRain': carla.WeatherParameters.HardRainNoon,
-        'SoftRain': carla.WeatherParameters.SoftRainSunset,
+        "Clear": carla.WeatherParameters.ClearNoon,
+        "Cloudy": carla.WeatherParameters.CloudySunset,
+        "Wet": carla.WeatherParameters.WetSunset,
+        "MidRain": carla.WeatherParameters.MidRainSunset,
+        "WetCloudy": carla.WeatherParameters.WetCloudySunset,
+        "HardRain": carla.WeatherParameters.HardRainNoon,
+        "SoftRain": carla.WeatherParameters.SoftRainSunset,
     }
 
     def __init__(self):
-        """ base architecture configurations """
+        """base architecture configurations"""
         # -----------------------------------------------------------------------------
         # Autopilot
         # -----------------------------------------------------------------------------
@@ -38,7 +39,7 @@ class GlobalConfig:
         # Amount of seconds we look into the future to predict collisions (>= 1 frame)
         self.extrapolation_seconds_lane_change = 2.2
         # Amount of seconds we look into the future to predict collisions at junctions
-        self.extrapolation_seconds = 2.
+        self.extrapolation_seconds = 2.0
         # Distance of obstacles (in meters) in which we will check for collisions
         self.detection_radius = 50.0
         # Distance of walker (in meters) in which we will check for collisions
@@ -48,7 +49,9 @@ class GlobalConfig:
         self.stuck_vel_threshold = 0.1
         self.stuck_throttle_threshold = 0.1
         self.stuck_brake_threshold = 0.1
-        self.num_route_points_saved = 20  # Number of future route points we save per step.
+        self.num_route_points_saved = (
+            20  # Number of future route points we save per step.
+        )
         # Since the traffic manager can scratch cars, we reduce the safety box width
         # in the forecasting to model that.
         self.traffic_safety_box_width_multiplier = 0.5
@@ -102,9 +105,9 @@ class GlobalConfig:
         # Maximum angle difference between the bounding box to distinguish between leading vehicles and other vehicles
         self.max_angle_difference_of_leading_vehicle_and_ego = 27
         # Minimum bounding box length extend of walkers
-        self.minimum_walkers_extent_length = 1.
+        self.minimum_walkers_extent_length = 1.0
         # Minimum bounding box width extend of walkers
-        self.minimum_walkers_extent_width = 1.
+        self.minimum_walkers_extent_width = 1.0
         # Time in seconds to draw the things during debugging.
         self.draw_life_time = 0.051
         # Colors used for drawing during debugging
@@ -123,31 +126,31 @@ class GlobalConfig:
         # Points sampled per meter when interpolating route.
         self.points_per_meter = 10
         # FPS of the simulation
-        self.fps = 20.
+        self.fps = 20.0
         # Inverse of the FPS
-        self.fps_inv = 1. / self.fps
+        self.fps_inv = 1.0 / self.fps
         # Distance to the stop sign, when the previous stop sign is uncleared
         self.unclearing_distance_to_stop_sign = 10
         # Distance to the stop sign, when the previous stop sign is cleared
-        self.clearing_distance_to_stop_sign = 3.
+        self.clearing_distance_to_stop_sign = 3.0
         # IDM minimum distance for stop signs
-        self.idm_stop_sign_minimum_distance = 2.
+        self.idm_stop_sign_minimum_distance = 2.0
         # IDM desrired time headway for stop signs
         self.idm_stop_sign_desired_time_headway = 0.5
         # IDM minimum distance for red lights
-        self.idm_red_light_minimum_distance = 5.
+        self.idm_red_light_minimum_distance = 5.0
         # IDM desrired time headway for red lights
         self.idm_red_light_desired_time_headway = 0.5
         # IDM minimum distance for pedestrians
-        self.idm_pedestrian_minimum_distance = 4.
+        self.idm_pedestrian_minimum_distance = 4.0
         # IDM desrired time headway for pedestrians
         self.idm_pedestrian_desired_time_headway = 0.5
         # IDM minimum distance for bicycles
-        self.idm_bicycle_minimum_distance = 4.
+        self.idm_bicycle_minimum_distance = 4.0
         # IDM desrired time headway for bicycles
         self.idm_bicycle_desired_time_headway = 0.25
         # IDM minimum distance for leading vehicles
-        self.idm_leading_vehicle_minimum_distance = 4.
+        self.idm_leading_vehicle_minimum_distance = 4.0
         # IDM desrired time headway for leading vehicles
         self.idm_leading_vehicle_time_headway = 0.25
         # IDM minimum distance for two way scenarios
@@ -157,17 +160,17 @@ class GlobalConfig:
         # Boundary time - the integration won’t continue beyond it.
         self.idm_t_bound = 1.0
         # IDM maximum accelaration parameter per 1 sec
-        self.idm_maximum_acceleration = 11.
+        self.idm_maximum_acceleration = 11.0
         # The following parameters were determined by measuring the vehicle's braking performance.
         # IDM maximum deceleration parameter per frame while driving slow
-        self.idm_comfortable_braking_deceleration_low_speed = 20.
+        self.idm_comfortable_braking_deceleration_low_speed = 20.0
         # IDM maximum deceleration parameter per frame while driving fast
-        self.idm_comfortable_braking_deceleration_high_speed = 20.
-        # Threshold to determine, when to use idm_comfortable_braking_deceleration_low_speed and 
+        self.idm_comfortable_braking_deceleration_high_speed = 20.0
+        # Threshold to determine, when to use idm_comfortable_braking_deceleration_low_speed and
         # idm_comfortable_braking_deceleration_high_speed
         self.idm_comfortable_braking_deceleration_threshold = 6.02
         # IDM acceleration exponent (default = 4.)
-        self.idm_acceleration_exponent = 4.
+        self.idm_acceleration_exponent = 4.0
         # Minimum extent for pedestrian during bbs forecasting
         self.pedestrian_minimum_extent = 1.5
         # Factor to increase the ego vehicles bbs during forecasting when speed < extent_ego_bbs_speed_threshold
@@ -185,9 +188,9 @@ class GlobalConfig:
         # Forecast length in seconds when not near a lane change
         self.default_forecast_length = 2.0
         # Extent factor of forecasted bbs of the ego vehicle
-        self.slow_speed_extent_factor_ego = 1.
+        self.slow_speed_extent_factor_ego = 1.0
         # Speed threshold to select which factor is used during other vehicle bbs forecasting
-        self.extent_other_vehicles_bbs_speed_threshold = 1.
+        self.extent_other_vehicles_bbs_speed_threshold = 1.0
         # Minimum extent of bbs, while forecasting other vehicles
         self.high_speed_min_extent_y_other_vehicle = 1.0
         # Extent factor to scale bbs during forecasting other vehicles in y direction
@@ -211,7 +214,9 @@ class GlobalConfig:
         self.tf_first_checkpoint_distance = int(2.5 * self.points_per_meter)
         # Parameters to calculate how much the ego agent needs to cover a given distance. Values are taken from
         # the kinematic bicycle model
-        self.compute_min_time_to_cover_distance_params = np.array([0.00904221, 0.00733342, -0.03744807, 0.0235038])
+        self.compute_min_time_to_cover_distance_params = np.array(
+            [0.00904221, 0.00733342, -0.03744807, 0.0235038]
+        )
         # Distance to check for road_id/lane_id for RouteObstacle scenarios
         self.previous_road_lane_retrieve_distance = 100
         # Safety distance during checking if the path is free for RouteObstacle scenarios
@@ -219,9 +224,13 @@ class GlobalConfig:
         # Safety time headway during checking if the path is free for RouteObstacle scenarios
         self.check_path_free_safety_time = 0.2
         # Transition length for change lane in scenario ConstructionObstacle
-        self.transition_smoothness_factor_construction_obstacle = 10.5 * self.points_per_meter
+        self.transition_smoothness_factor_construction_obstacle = (
+            10.5 * self.points_per_meter
+        )
         # Check in x meters if there is lane change ahead
-        self.minimum_lookahead_distance_to_compute_near_lane_change = 20 * self.points_per_meter
+        self.minimum_lookahead_distance_to_compute_near_lane_change = (
+            20 * self.points_per_meter
+        )
         # Check if did a lane change in the previous x meters
         self.check_previous_distance_for_lane_change = 15 * self.points_per_meter
         # Draw x meters of the route during debugging
@@ -235,16 +244,22 @@ class GlobalConfig:
         # Transition length for sceneario AccidentTwoWays to change lanes
         self.transition_length_accident_two_ways = int(4 * self.points_per_meter)
         # Transition length for sceneario ConstructionObstacleTwoWays to change lanes
-        self.transition_length_construction_obstacle_two_ways = int(4 * self.points_per_meter)
+        self.transition_length_construction_obstacle_two_ways = int(
+            4 * self.points_per_meter
+        )
         # Transition length for sceneario ParkedObstacleTwoWays to change lanes
         self.transition_length_parked_obstacle_two_ways = int(4 * self.points_per_meter)
         # Transition length for sceneario VehicleOpensDoorTwoWays to change lanes
-        self.transition_length_vehicle_opens_door_two_ways = int(4 * self.points_per_meter)
+        self.transition_length_vehicle_opens_door_two_ways = int(
+            4 * self.points_per_meter
+        )
         # Increase overtaking maneuver by distance in meters in the scenario AccidentTwoWays before the obstacle
         self.add_before_accident_two_ways = int(-1.5 * self.points_per_meter)
         # Increase overtaking maneuver by distance in meters in the scenario ConstructionObstacleTwoWays
         # before the obstacle
-        self.add_before_construction_obstacle_two_ways = int(1.5 * self.points_per_meter)
+        self.add_before_construction_obstacle_two_ways = int(
+            1.5 * self.points_per_meter
+        )
         # Increase overtaking maneuver by distance in meters in the scenario ParkedObstacleTwoWays before the obstacle
         self.add_before_parked_obstacle_two_ways = int(-0.5 * self.points_per_meter)
         # Increase overtaking maneuver by distance in meters in the scenario VehicleOpensDoorTwoWays before the obstacle
@@ -259,9 +274,9 @@ class GlobalConfig:
         # Increase overtaking maneuver by distance in meters in the scenario VehicleOpensDoorTwoWays after the obstacle
         self.add_after_vehicle_opens_door_two_ways = int(-2.0 * self.points_per_meter)
         # How much to drive to the center of the opposite lane while handling the scenario AccidentTwoWays
-        self.factor_accident_two_ways = 1.
+        self.factor_accident_two_ways = 1.0
         # How much to drive to the center of the opposite lane while handling the scenario ConstructionObstacleTwoWays
-        self.factor_construction_obstacle_two_ways = 1.
+        self.factor_construction_obstacle_two_ways = 1.0
         # How much to drive to the center of the opposite lane while handling the scenario ParkedObstacleTwoWays
         self.factor_parked_obstacle_two_ways = 0.6
         # How much to drive to the center of the opposite lane while handling the scenario VehicleOpensDoorTwoWays
@@ -269,9 +284,9 @@ class GlobalConfig:
         # Maximum distance to start the overtaking maneuver
         self.max_distance_to_overtake_two_way_scnearios = int(8 * self.points_per_meter)
         # Overtaking speed in m/s for vehicle opens door two ways scenarios
-        self.overtake_speed_vehicle_opens_door_two_ways = 40. / 3.6
+        self.overtake_speed_vehicle_opens_door_two_ways = 40.0 / 3.6
         # Default overtaking speed in m/s for all route obstacle scenarios
-        self.default_overtake_speed = 50. / 3.6
+        self.default_overtake_speed = 50.0 / 3.6
         # Distance in meters at which two ways scenarios are considered finished
         self.distance_to_delete_scenario_in_two_ways = int(2 * self.points_per_meter)
         # -----------------------------------------------------------------------------
@@ -281,10 +296,17 @@ class GlobalConfig:
         # Minimum threshold for target speed (< 1 km/h) for longitudinal linear regression controller.
         self.longitudinal_linear_regression_minimum_target_speed = 0.278
         # Coefficients of the linear regression model used for throttle calculation.
-        self.longitudinal_linear_regression_params = np.array([
-            1.1990342347353184, -0.8057602384167799, 1.710818710950062, 0.921890257450335, 1.556497522998393,
-            -0.7013479734904027, 1.031266635497984
-        ])
+        self.longitudinal_linear_regression_params = np.array(
+            [
+                1.1990342347353184,
+                -0.8057602384167799,
+                1.710818710950062,
+                0.921890257450335,
+                1.556497522998393,
+                -0.7013479734904027,
+                1.031266635497984,
+            ]
+        )
         # Maximum acceleration rate (approximately 1.9 m/tick) for the longitudinal linear regression controller.
         self.longitudinal_linear_regression_maximum_acceleration = 1.89
         # Maximum deceleration rate (approximately -4.82 m/tick) for the longitudinal linear regression controller.
@@ -335,7 +357,7 @@ class GlobalConfig:
         # Kinematic Bicycle Model
         # -----------------------------------------------------------------------------
         #  Time step for the model (20 frames per second).
-        self.time_step = 1. / 20.
+        self.time_step = 1.0 / 20.0
         # Kinematic bicycle model parameters tuned from World on Rails.
         # Distance from the rear axle to the front axle of the vehicle.
         self.front_wheel_base = -0.090769015
@@ -352,15 +374,30 @@ class GlobalConfig:
         # a dataset where the car drives on a straight highway, accelerates to
         # and brakes again
         # Coefficients for polynomial equation estimating speed change with throttle input for ego model.
-        self.throttle_values = np.array([
-            9.63873001e-01, 4.37535692e-04, -3.80192912e-01, 1.74950069e+00, 9.16787414e-02, -7.05461530e-02,
-            -1.05996152e-03, 6.71079346e-04
-        ])
+        self.throttle_values = np.array(
+            [
+                9.63873001e-01,
+                4.37535692e-04,
+                -3.80192912e-01,
+                1.74950069e00,
+                9.16787414e-02,
+                -7.05461530e-02,
+                -1.05996152e-03,
+                6.71079346e-04,
+            ]
+        )
         # Coefficients for polynomial equation estimating speed change with brake input for the ego model.
-        self.brake_values = np.array([
-            9.31711370e-03, 8.20967431e-02, -2.83832427e-03, 5.06587474e-05, -4.90357228e-07, 2.44419284e-09,
-            -4.91381935e-12
-        ])
+        self.brake_values = np.array(
+            [
+                9.31711370e-03,
+                8.20967431e-02,
+                -2.83832427e-03,
+                5.06587474e-05,
+                -4.90357228e-07,
+                2.44419284e-09,
+                -4.91381935e-12,
+            ]
+        )
         # Minimum throttle value that has an affect during forecasting the ego vehicle.
         self.throttle_threshold_during_forecasting = 0.3
         # -----------------------------------------------------------------------------
@@ -369,7 +406,9 @@ class GlobalConfig:
         # Max distance to search ahead for updating ego route index  in meters.
         self.ego_vehicles_route_point_search_distance = 4 * self.points_per_meter
         # Length to extend lane shift transition for YieldToEmergencyVehicle  in meters.
-        self.lane_shift_extension_length_for_yield_to_emergency_vehicle = 20 * self.points_per_meter
+        self.lane_shift_extension_length_for_yield_to_emergency_vehicle = (
+            20 * self.points_per_meter
+        )
         # Distance over which lane shift transition is smoothed  in meters.
         self.transition_smoothness_distance = 8 * self.points_per_meter
         # Distance over which lane shift transition is smoothed for InvadingTurn  in meters.
@@ -384,7 +423,7 @@ class GlobalConfig:
         # Max distance on route for detecting leading vehicles.
         self.leading_vehicles_max_route_distance = 2.5
         # Max angle difference for detecting leading vehicles  in meters.
-        self.leading_vehicles_max_route_angle_distance = 35.
+        self.leading_vehicles_max_route_angle_distance = 35.0
         # Max radius for detecting any leading vehicles in meters.
         self.leading_vehicles_maximum_detection_radius = 80 * self.points_per_meter
         # Max distance on route for detecting trailing vehicles.
@@ -405,12 +444,12 @@ class GlobalConfig:
         self.azimuths = [45.0 * i for i in range(8)]
         # Daytimes used for data collection
         self.daytimes = {
-            'Night': -80.0,
-            'Twilight': 0.0,
-            'Dawn': 5.0,
-            'Sunset': 15.0,
-            'Morning': 35.0,
-            'Noon': 75.0,
+            "Night": -80.0,
+            "Twilight": 0.0,
+            "Dawn": 5.0,
+            "Sunset": 15.0,
+            "Morning": 35.0,
+            "Noon": 75.0,
         }
         # Max and min values by which the augmented camera is shifted left and right
         self.camera_translation_augmentation_min = -1.0
@@ -453,7 +492,9 @@ class GlobalConfig:
         self.lidar_seq_len = 1
         # Number of initial frames to skip during data loading
         self.skip_first = int(2.5 * self.carla_fps) // self.data_save_freq
-        self.pred_len = int(2.0 * self.carla_fps) // self.data_save_freq  # number of future waypoints predicted
+        self.pred_len = (
+            int(2.0 * self.carla_fps) // self.data_save_freq
+        )  # number of future waypoints predicted
         # Width and height of the LiDAR grid that the point cloud is voxelized into.
         self.lidar_resolution_width = 256
         self.lidar_resolution_height = 256
@@ -480,10 +521,17 @@ class GlobalConfig:
         self.max_z_projection = 14
         # Bin in for the target speed one hot vector.
         self.target_speed_bins = [
-            self.target_speed_walker + 0.1, self.target_speed_slow + 0.1, self.target_speed_fast + 0.1
+            self.target_speed_walker + 0.1,
+            self.target_speed_slow + 0.1,
+            self.target_speed_fast + 0.1,
         ]
         # Index 0 is the brake action
-        self.target_speeds = [0.0, self.target_speed_walker, self.target_speed_slow, self.target_speed_fast]
+        self.target_speeds = [
+            0.0,
+            self.target_speed_walker,
+            self.target_speed_slow,
+            self.target_speed_fast,
+        ]
         # Angle bin thresholds
         self.angle_bins = [-0.375, -0.125, 0.125, 0.375]
         # Discrete steering angles
@@ -493,13 +541,34 @@ class GlobalConfig:
         self.estimate_semantic_distribution = False
         # Class weights applied to the cross entropy losses
         # Computed from the v07 all dataset
-        self.target_speed_weights = [0.866605263873406, 7.4527377240841775, 1.2281629310898465, 0.5269622904065803]
+        self.target_speed_weights = [
+            0.866605263873406,
+            7.4527377240841775,
+            1.2281629310898465,
+            0.5269622904065803,
+        ]
         self.angle_weights = [
-            204.25901201602136, 7.554315623148331, 0.21388916461734406, 5.476446162657503, 207.86684782608697
+            204.25901201602136,
+            7.554315623148331,
+            0.21388916461734406,
+            5.476446162657503,
+            207.86684782608697,
         ]
         # We don't use weighting here
         self.semantic_weights = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
-        self.bev_semantic_weights = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+        self.bev_semantic_weights = [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+        ]
 
         # # -----------------------------------------------------------------------------
         # # DataAgent
@@ -510,7 +579,9 @@ class GlobalConfig:
         # Logger
         # -----------------------------------------------------------------------------
         self.logging_freq = 10  # Log every 10 th frame
-        self.logger_region_of_interest = 30.0  # Meters around the car that will be logged.
+        self.logger_region_of_interest = (
+            30.0  # Meters around the car that will be logged.
+        )
         self.route_points = 10  # Number of route points to render in logger
         # Minimum distance to the next waypoint in the logger
         self.log_route_planner_min_distance = 4.0
@@ -531,7 +602,9 @@ class GlobalConfig:
         # Number of frames after which the creep controller starts triggering. 1100 is larger than wait
         # time at red light.
         self.stuck_threshold = 1100 / self.action_repeat
-        self.creep_duration = 20 / self.action_repeat  # Number of frames we will creep forward
+        self.creep_duration = (
+            20 / self.action_repeat
+        )  # Number of frames we will creep forward
         self.creep_throttle = 0.4
         # CARLA needs some time to initialize in which the cars actions are blocked.
         # Number tuned empirically
@@ -555,4 +628,6 @@ class GlobalConfig:
         # Probability 0 - 1. If the confidence in the brake action is higher than this
         # value brake is chosen as the action.
         self.brake_uncertainty_threshold = 0.5
-        self.checkpoint_buffer_len = 10  # Number of time steps that we use for route consistency
+        self.checkpoint_buffer_len = (
+            10  # Number of time steps that we use for route consistency
+        )

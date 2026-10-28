@@ -17,6 +17,7 @@ specific information
 import fnmatch
 from srunner.metrics.tools.metrics_parser import MetricsParser
 
+
 class MetricsLog(object):  # pylint: disable=too-many-public-methods
     """
     Utility class to query the log.
@@ -263,7 +264,9 @@ class MetricsLog(object):  # pylint: disable=too-many-public-methods
         """
         Returns a list with all the transforms of the actor at the frame interval.
         """
-        return self._get_all_actor_states(actor_id, "transform", first_frame, last_frame)
+        return self._get_all_actor_states(
+            actor_id, "transform", first_frame, last_frame
+        )
 
     def get_actor_transforms_at_frame(self, frame, actor_list=None):
         """
@@ -299,11 +302,15 @@ class MetricsLog(object):  # pylint: disable=too-many-public-methods
         """
         return self._get_actor_state(actor_id, "angular_velocity", frame)
 
-    def get_all_actor_angular_velocities(self, actor_id, first_frame=None, last_frame=None):
+    def get_all_actor_angular_velocities(
+        self, actor_id, first_frame=None, last_frame=None
+    ):
         """
         Returns a list with all the angular velocities of the actor at the frame interval.
         """
-        return self._get_all_actor_states(actor_id, "angular_velocity", first_frame, last_frame)
+        return self._get_all_actor_states(
+            actor_id, "angular_velocity", first_frame, last_frame
+        )
 
     def get_actor_angular_velocities_at_frame(self, frame, actor_list=None):
         """
@@ -323,7 +330,9 @@ class MetricsLog(object):  # pylint: disable=too-many-public-methods
         """
         Returns a list with all the accelerations of the actor at the frame interval.
         """
-        return self._get_all_actor_states(actor_id, "acceleration", first_frame, last_frame)
+        return self._get_all_actor_states(
+            actor_id, "acceleration", first_frame, last_frame
+        )
 
     def get_actor_accelerations_at_frame(self, frame, actor_list=None):
         """

@@ -23,7 +23,7 @@ try:
     from pygame.locals import K_w
     from pygame.locals import K_q
 except ImportError:
-    raise RuntimeError('cannot import pygame, make sure pygame package is installed')
+    raise RuntimeError("cannot import pygame, make sure pygame package is installed")
 
 import carla
 
@@ -31,15 +31,17 @@ from leaderboard.autoagents.autonomous_agent import AutonomousAgent, Track
 
 
 def get_entry_point():
-    return 'HumanAgent'
+    return "HumanAgent"
+
 
 class HumanInterface(object):
-
     """
     Class to control a vehicle manually for debugging purposes
     """
 
-    def __init__(self, width, height, side_scale, left_mirror=False, right_mirror=False):
+    def __init__(
+        self, width, height, side_scale, left_mirror=False, right_mirror=False
+    ):
         self._width = width
         self._height = height
         self._scale = side_scale
@@ -51,7 +53,9 @@ class HumanInterface(object):
         pygame.init()
         pygame.font.init()
         self._clock = pygame.time.Clock()
-        self._display = pygame.display.set_mode((self._width, self._height), pygame.HWSURFACE | pygame.DOUBLEBUF)
+        self._display = pygame.display.set_mode(
+            (self._width, self._height), pygame.HWSURFACE | pygame.DOUBLEBUF
+        )
         pygame.display.set_caption("Human Agent")
 
     def run_interface(self, input_data):
@@ -60,20 +64,23 @@ class HumanInterface(object):
         """
 
         # Process sensor data
-        image_center = input_data['Center'][1][:, :, -2::-1]
+        image_center = input_data["Center"][1][:, :, -2::-1]
         self._surface = pygame.surfarray.make_surface(image_center.swapaxes(0, 1))
 
         # Add the left mirror
         if self._left_mirror:
-            image_left = input_data['Left'][1][:, :, -2::-1]
+            image_left = input_data["Left"][1][:, :, -2::-1]
             left_surface = pygame.surfarray.make_surface(image_left.swapaxes(0, 1))
             self._surface.blit(left_surface, (0, (1 - self._scale) * self._height))
 
         # Add the right mirror
         if self._right_mirror:
-            image_right = input_data['Right'][1][:, :, -2::-1]
+            image_right = input_data["Right"][1][:, :, -2::-1]
             right_surface = pygame.surfarray.make_surface(image_right.swapaxes(0, 1))
-            self._surface.blit(right_surface, ((1 - self._scale) * self._width, (1 - self._scale) * self._height))
+            self._surface.blit(
+                right_surface,
+                ((1 - self._scale) * self._width, (1 - self._scale) * self._height),
+            )
 
         # Display image
         if self._surface is not None:
@@ -93,7 +100,6 @@ class HumanInterface(object):
 
 
 class HumanAgent(AutonomousAgent):
-
     """
     Human agent to control the ego vehicle via keyboard
     """
@@ -119,7 +125,7 @@ class HumanAgent(AutonomousAgent):
             self.camera_height,
             self._side_scale,
             self._left_mirror,
-            self._right_mirror
+            self._right_mirror,
         )
         self._controller = KeyboardControl(path_to_conf_file)
         self._prev_timestamp = 0
@@ -145,21 +151,54 @@ class HumanAgent(AutonomousAgent):
         """
 
         sensors = [
-            {'type': 'sensor.camera.rgb', 'x': 0.7, 'y': 0.0, 'z': 1.60, 'roll': 0.0, 'pitch': 0.0, 'yaw': 0.0,
-             'width': self.camera_width, 'height': self.camera_height, 'fov': 100, 'id': 'Center'},
+            {
+                "type": "sensor.camera.rgb",
+                "x": 0.7,
+                "y": 0.0,
+                "z": 1.60,
+                "roll": 0.0,
+                "pitch": 0.0,
+                "yaw": 0.0,
+                "width": self.camera_width,
+                "height": self.camera_height,
+                "fov": 100,
+                "id": "Center",
+            },
         ]
 
         if self._left_mirror:
             sensors.append(
-                {'type': 'sensor.camera.rgb', 'x': 0.7, 'y': -1.0, 'z': 1, 'roll': 0.0, 'pitch': 0.0, 'yaw': 210.0,
-                 'width': self.camera_width * self._side_scale, 'height': self.camera_height * self._side_scale,
-                 'fov': 100, 'id': 'Left'})
+                {
+                    "type": "sensor.camera.rgb",
+                    "x": 0.7,
+                    "y": -1.0,
+                    "z": 1,
+                    "roll": 0.0,
+                    "pitch": 0.0,
+                    "yaw": 210.0,
+                    "width": self.camera_width * self._side_scale,
+                    "height": self.camera_height * self._side_scale,
+                    "fov": 100,
+                    "id": "Left",
+                }
+            )
 
         if self._right_mirror:
             sensors.append(
-                {'type': 'sensor.camera.rgb', 'x': 0.7, 'y': 1.0, 'z': 1, 'roll': 0.0, 'pitch': 0.0, 'yaw': 150.0,
-                 'width': self.camera_width * self._side_scale, 'height': self.camera_height * self._side_scale,
-                 'fov': 100, 'id': 'Right'})
+                {
+                    "type": "sensor.camera.rgb",
+                    "x": 0.7,
+                    "y": 1.0,
+                    "z": 1,
+                    "roll": 0.0,
+                    "pitch": 0.0,
+                    "yaw": 150.0,
+                    "width": self.camera_width * self._side_scale,
+                    "height": self.camera_height * self._side_scale,
+                    "fov": 100,
+                    "id": "Right",
+                }
+            )
 
         return sensors
 
@@ -185,7 +224,6 @@ class HumanAgent(AutonomousAgent):
 
 
 class KeyboardControl(object):
-
     """
     Keyboard control for the human agent
     """
@@ -201,14 +239,14 @@ class KeyboardControl(object):
         # Get the mode
         if path_to_conf_file:
 
-            with (open(path_to_conf_file, "r")) as f:
+            with open(path_to_conf_file, "r") as f:
                 lines = f.read().split("\n")
                 self._mode = lines[0].split(" ")[1]
                 self._endpoint = lines[1].split(" ")[1]
 
             # Get the needed vars
             if self._mode == "log":
-                self._log_data = {'records': []}
+                self._log_data = {"records": []}
 
             elif self._mode == "playback":
                 self._index = 0
@@ -227,14 +265,16 @@ class KeyboardControl(object):
     def _json_to_control(self):
 
         # transform strs into VehicleControl commands
-        for entry in self._records['records']:
-            control = carla.VehicleControl(throttle=entry['control']['throttle'],
-                                           steer=entry['control']['steer'],
-                                           brake=entry['control']['brake'],
-                                           hand_brake=entry['control']['hand_brake'],
-                                           reverse=entry['control']['reverse'],
-                                           manual_gear_shift=entry['control']['manual_gear_shift'],
-                                           gear=entry['control']['gear'])
+        for entry in self._records["records"]:
+            control = carla.VehicleControl(
+                throttle=entry["control"]["throttle"],
+                steer=entry["control"]["steer"],
+                brake=entry["control"]["brake"],
+                hand_brake=entry["control"]["hand_brake"],
+                reverse=entry["control"]["reverse"],
+                manual_gear_shift=entry["control"]["manual_gear_shift"],
+                gear=entry["control"]["gear"],
+            )
             self._control_list.append(control)
 
     def parse_events(self, timestamp):
@@ -245,7 +285,7 @@ class KeyboardControl(object):
         if self._mode == "playback":
             self._parse_json_control()
         else:
-            self._parse_vehicle_keys(pygame.key.get_pressed(), timestamp*1000)
+            self._parse_vehicle_keys(pygame.key.get_pressed(), timestamp * 1000)
 
         # Record the control
         if self._mode == "log":
@@ -260,7 +300,7 @@ class KeyboardControl(object):
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                return 
+                return
             elif event.type == pygame.KEYUP:
                 if event.key == K_q:
                     self._control.gear = 1 if self._control.reverse else -1
@@ -293,21 +333,21 @@ class KeyboardControl(object):
 
     def _record_control(self):
         new_record = {
-            'control': {
-                'throttle': self._control.throttle,
-                'steer': self._control.steer,
-                'brake': self._control.brake,
-                'hand_brake': self._control.hand_brake,
-                'reverse': self._control.reverse,
-                'manual_gear_shift': self._control.manual_gear_shift,
-                'gear': self._control.gear
+            "control": {
+                "throttle": self._control.throttle,
+                "steer": self._control.steer,
+                "brake": self._control.brake,
+                "hand_brake": self._control.hand_brake,
+                "reverse": self._control.reverse,
+                "manual_gear_shift": self._control.manual_gear_shift,
+                "gear": self._control.gear,
             }
         }
 
-        self._log_data['records'].append(new_record)
+        self._log_data["records"].append(new_record)
 
     def __del__(self):
         # Get ready to log user commands
         if self._mode == "log" and self._log_data:
-            with open(self._endpoint, 'w') as fd:
+            with open(self._endpoint, "w") as fd:
                 json.dump(self._log_data, fd, indent=4, sort_keys=True)

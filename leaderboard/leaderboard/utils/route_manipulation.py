@@ -26,10 +26,14 @@ def _location_to_gps(lat_ref, lon_ref, location):
     :return: dictionary with lat, lon and height
     """
 
-    EARTH_RADIUS_EQUA = 6378137.0   # pylint: disable=invalid-name
+    EARTH_RADIUS_EQUA = 6378137.0  # pylint: disable=invalid-name
     scale = math.cos(lat_ref * math.pi / 180.0)
     mx = scale * lon_ref * math.pi * EARTH_RADIUS_EQUA / 180.0
-    my = scale * EARTH_RADIUS_EQUA * math.log(math.tan((90.0 + lat_ref) * math.pi / 360.0))
+    my = (
+        scale
+        * EARTH_RADIUS_EQUA
+        * math.log(math.tan((90.0 + lat_ref) * math.pi / 360.0))
+    )
     mx += location.x
     my -= location.y
 
@@ -37,7 +41,7 @@ def _location_to_gps(lat_ref, lon_ref, location):
     lat = 360.0 * math.atan(math.exp(my / (EARTH_RADIUS_EQUA * scale))) / math.pi - 90.0
     z = location.z
 
-    return {'lat': lat, 'lon': lon, 'z': z}
+    return {"lat": lat, "lon": lon, "z": z}
 
 
 def location_route_to_gps(route, lat_ref, lon_ref):
@@ -73,12 +77,12 @@ def _get_latlon_ref(world):
         for header in opendrive.iter("header"):
             for georef in header.iter("geoReference"):
                 if georef.text:
-                    str_list = georef.text.split(' ')
+                    str_list = georef.text.split(" ")
                     for item in str_list:
-                        if '+lat_0' in item:
-                            lat_ref = float(item.split('=')[1])
-                        if '+lon_0' in item:
-                            lon_ref = float(item.split('=')[1])
+                        if "+lat_0" in item:
+                            lat_ref = float(item.split("=")[1])
+                        if "+lon_0" in item:
+                            lon_ref = float(item.split("=")[1])
     return lat_ref, lon_ref
 
 
@@ -108,7 +112,10 @@ def downsample_route(route, sample_factor):
             dist = 0
 
         # When entering or exitting intersections
-        elif prev_option != curr_option and prev_option not in (RoadOption.CHANGELANELEFT, RoadOption.CHANGELANERIGHT):
+        elif prev_option != curr_option and prev_option not in (
+            RoadOption.CHANGELANELEFT,
+            RoadOption.CHANGELANERIGHT,
+        ):
             ids_to_sample.append(i)
             dist = 0
 
@@ -125,7 +132,7 @@ def downsample_route(route, sample_factor):
         # Compute the distance traveled
         else:
             curr_location = point[0].location
-            prev_location = route[i-1][0].location
+            prev_location = route[i - 1][0].location
             dist += curr_location.distance(prev_location)
 
         prev_option = curr_option
@@ -137,7 +144,7 @@ def interpolate_trajectory(waypoints_trajectory, hop_resolution=1.0):
     """
     Given some raw keypoints interpolate a full dense trajectory to be used by the user.
     returns the full interpolated route both in GPS coordinates and also in its original form.
-    
+
     Args:
         - waypoints_trajectory: the current coarse trajectory
         - hop_resolution: distance between the trajectory's waypoints

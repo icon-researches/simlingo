@@ -33,7 +33,9 @@ class DistanceBetweenVehicles(BasicMetric):
 
         # Get the ID of the two vehicles
         ego_id = log.get_ego_vehicle_id()
-        adv_id = log.get_actor_ids_with_role_name("scenario")[0]  # Could have also used its type_id
+        adv_id = log.get_actor_ids_with_role_name("scenario")[
+            0
+        ]  # Could have also used its type_id
 
         dist_list = []
         frames_list = []
@@ -56,14 +58,16 @@ class DistanceBetweenVehicles(BasicMetric):
                 continue
 
             dist_v = ego_location - adv_location
-            dist = math.sqrt(dist_v.x * dist_v.x + dist_v.y * dist_v.y + dist_v.z * dist_v.z)
+            dist = math.sqrt(
+                dist_v.x * dist_v.x + dist_v.y * dist_v.y + dist_v.z * dist_v.z
+            )
 
             dist_list.append(dist)
             frames_list.append(i)
 
         # Use matplotlib to show the results
         plt.plot(frames_list, dist_list)
-        plt.ylabel('Distance [m]')
-        plt.xlabel('Frame number')
-        plt.title('Distance between the ego vehicle and the adversary over time')
+        plt.ylabel("Distance [m]")
+        plt.xlabel("Frame number")
+        plt.title("Distance between the ego vehicle and the adversary over time")
         plt.show()

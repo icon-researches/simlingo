@@ -88,7 +88,7 @@ class DataModule(LightningDataModule):
         # TODO: not needed anymore?
         self.tokenizer.add_special_tokens(
             {
-                "extra_special_tokens": [
+                "additional_special_tokens": [
                     "<WAYPOINTS>",
                     "<WAYPOINTS_DIFF>",
                     "<ORG_WAYPOINTS_DIFF>",

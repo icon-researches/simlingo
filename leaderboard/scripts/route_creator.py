@@ -16,6 +16,7 @@ from agents.navigation.local_planner import RoadOption
 
 LIFE_TIME = 10000
 
+
 def draw_point(world, wp, option):
     if option == RoadOption.LEFT:  # Yellow
         color = carla.Color(128, 128, 0)
@@ -30,17 +31,47 @@ def draw_point(world, wp, option):
     else:  # LANEFOLLOW
         color = carla.Color(0, 128, 0)  # Green
 
-    world.debug.draw_point(wp.transform.location + carla.Location(z=0.2), size=0.05, color=color, life_time=LIFE_TIME)
+    world.debug.draw_point(
+        wp.transform.location + carla.Location(z=0.2),
+        size=0.05,
+        color=color,
+        life_time=LIFE_TIME,
+    )
+
 
 def draw_keypoint(world, location):
-    world.debug.draw_point(location + carla.Location(z=0.2), size=0.1, color=carla.Color(128, 0, 128), life_time=LIFE_TIME)
-    string = "(" + str(round(location.x, 1)) + ", " + str(round(location.y, 1)) + ", " + str(round(location.z, 1)) + ")"
-    world.debug.draw_string(location + carla.Location(z=0.5), string, True, color=carla.Color(0, 0 , 128), life_time=LIFE_TIME)
+    world.debug.draw_point(
+        location + carla.Location(z=0.2),
+        size=0.1,
+        color=carla.Color(128, 0, 128),
+        life_time=LIFE_TIME,
+    )
+    string = (
+        "("
+        + str(round(location.x, 1))
+        + ", "
+        + str(round(location.y, 1))
+        + ", "
+        + str(round(location.z, 1))
+        + ")"
+    )
+    world.debug.draw_string(
+        location + carla.Location(z=0.5),
+        string,
+        True,
+        color=carla.Color(0, 0, 128),
+        life_time=LIFE_TIME,
+    )
+
 
 def get_saved_data(filename, route_id, world, grp):
     def convert_elem_to_location(elem):
         """Convert an ElementTree.Element to a CARLA Location"""
-        return carla.Location(float(elem.attrib.get('x')), float(elem.attrib.get('y')), float(elem.attrib.get('z')))
+        return carla.Location(
+            float(elem.attrib.get("x")),
+            float(elem.attrib.get("y")),
+            float(elem.attrib.get("z")),
+        )
 
     distance = 0
 
@@ -51,12 +82,12 @@ def get_saved_data(filename, route_id, world, grp):
 
     points = []
     for route in root.iter("route"):
-        if route.attrib['id'] != route_id:
+        if route.attrib["id"] != route_id:
             continue
 
         found_id = True
 
-        for position in route.find('waypoints').iter('position'):
+        for position in route.find("waypoints").iter("position"):
             points.append(convert_elem_to_location(position))
 
         if points:
@@ -68,16 +99,20 @@ def get_saved_data(filename, route_id, world, grp):
                     wp, option = interpolated_trace[j]
                     wp_next = interpolated_trace[j + 1][0]
                     draw_point(world, wp, option)
-                    distance += wp.transform.location.distance(wp_next.transform.location)
+                    distance += wp.transform.location.distance(
+                        wp_next.transform.location
+                    )
 
                 draw_keypoint(world, waypoint)
             draw_keypoint(world, points[-1])
 
     if not found_id:
-        print(f"\033[91mCouldn't find the id '{route_id}' in the given routes file\033[0m")
-
+        print(
+            f"\033[91mCouldn't find the id '{route_id}' in the given routes file\033[0m"
+        )
 
     return points, distance
+
 
 def add_data(points, tmap, world, spectator, grp):
     waypoint = tmap.get_waypoint(spectator.get_location())
@@ -93,6 +128,7 @@ def add_data(points, tmap, world, spectator, grp):
     points.append(waypoint.transform.location)
     return added_distance
 
+
 def save_data(filename, route_id, points):
     def indent(elem, spaces=3, level=0):
         i = "\n" + level * spaces * " "
@@ -103,7 +139,7 @@ def save_data(filename, route_id, points):
             if not elem.tail or not elem.tail.strip():
                 elem.tail = i
             for subelem in elem:
-                indent(subelem, spaces, level+1)
+                indent(subelem, spaces, level + 1)
         else:
             if level and (not elem.tail or not elem.tail.strip()):
                 elem.tail = i
@@ -115,13 +151,13 @@ def save_data(filename, route_id, points):
     found_id = False
 
     for route in root.iter("route"):
-        if route.attrib['id'] != route_id:
+        if route.attrib["id"] != route_id:
             continue
-        
+
         found_id = True
 
-        waypoints = route.find('waypoints')
-        for position in waypoints.iter('position'):
+        waypoints = route.find("waypoints")
+        for position in waypoints.iter("position"):
             waypoints.remove(position)
 
         for point in points:
@@ -132,7 +168,9 @@ def save_data(filename, route_id, points):
         break
 
     if not found_id:
-        print(f"\n\033[91mCouldn't find the id '{route_id} in the given routes file\033[0m")
+        print(
+            f"\n\033[91mCouldn't find the id '{route_id} in the given routes file\033[0m"
+        )
         return
 
     # Prettify the xml. A bit of automatic indentation, a bit of manual one
@@ -140,42 +178,61 @@ def save_data(filename, route_id, points):
     indent(root, spaces)
     tree.write(filename)
 
-    with open(filename, 'r') as f:
+    with open(filename, "r") as f:
         data = f.read()
     temp = data.replace("   </", "</")  # The 'indent' function fails for these cases
 
-    weather_spaces = spaces*4*" "
+    weather_spaces = spaces * 4 * " "
     temp = temp.replace(" cloudiness", "\n" + weather_spaces + "cloudiness")
     temp = temp.replace(" wind_intensity", "\n" + weather_spaces + "wind_intensity")
     temp = temp.replace(" fog_density", "\n" + weather_spaces + "fog_density")
-    new_data = temp.replace(" mie_scattering_scale", "\n" + weather_spaces + "mie_scattering_scale")
+    new_data = temp.replace(
+        " mie_scattering_scale", "\n" + weather_spaces + "mie_scattering_scale"
+    )
 
-    with open(filename, 'w') as f:
+    with open(filename, "w") as f:
         f.write(new_data)
+
 
 def main():
     argparser = argparse.ArgumentParser(description=__doc__)
-    argparser.add_argument('--host', metavar='H', default='localhost', help='IP of the host CARLA Simulator (default: localhost)')
-    argparser.add_argument('--port', metavar='P', default=2000, type=int, help='TCP port of CARLA Simulator (default: 2000)')
-    argparser.add_argument('-f', '--file', required=True, nargs="+", help='File at which to place the scenarios')
+    argparser.add_argument(
+        "--host",
+        metavar="H",
+        default="localhost",
+        help="IP of the host CARLA Simulator (default: localhost)",
+    )
+    argparser.add_argument(
+        "--port",
+        metavar="P",
+        default=2000,
+        type=int,
+        help="TCP port of CARLA Simulator (default: 2000)",
+    )
+    argparser.add_argument(
+        "-f",
+        "--file",
+        required=True,
+        nargs="+",
+        help="File at which to place the scenarios",
+    )
     args = argparser.parse_args()
-
 
     file_path = args.file[0]
     route_id = args.file[1] if len(args.file) > 1 else 0
-    
+
     # Get the client
     client = carla.Client(args.host, args.port)
     client.set_timeout(30.0)
-    
+
     # Load world
     tree = etree.parse(args.file[0])
     root = tree.getroot()
     for route in root.iter("route"):
-        if route.attrib['id'] != route_id:
+        if route.attrib["id"] != route_id:
             continue
-        town = route.attrib['town']
-        
+        town = route.attrib["town"]
+
     client.load_world(town)
 
     # # Get the rest
@@ -184,7 +241,6 @@ def main():
     tmap = world.get_map()
     grp = GlobalRoutePlanner(tmap, 2.0)
     points = []
-
 
     # Get the data already at the file
     points, distance = get_saved_data(file_path, route_id, world, grp)
@@ -214,7 +270,8 @@ def main():
     except KeyboardInterrupt as e:
         print("\n Detected a keyboard interruption, stopping the script. ")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     try:
         main()
     except RuntimeError as e:

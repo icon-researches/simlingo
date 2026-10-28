@@ -16,10 +16,12 @@ import py_trees
 import carla
 
 from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
-from srunner.scenariomanager.scenarioatomics.atomic_behaviors import (ActorDestroy,
-                                                                      ActorTransformSetter,
-                                                                      SyncArrivalWithAgent,
-                                                                      CutIn)
+from srunner.scenariomanager.scenarioatomics.atomic_behaviors import (
+    ActorDestroy,
+    ActorTransformSetter,
+    SyncArrivalWithAgent,
+    CutIn,
+)
 from srunner.scenariomanager.scenarioatomics.atomic_criteria import CollisionTest
 from srunner.scenarios.basic_scenario import BasicScenario
 
@@ -27,16 +29,16 @@ from srunner.tools.background_manager import HandleJunctionScenario
 
 from srunner.tools.scenario_helper import generate_target_waypoint
 
+
 def convert_dict_to_location(actor_dict):
     """
     Convert a JSON string to a Carla.Location
     """
     location = carla.Location(
-        x=float(actor_dict['x']),
-        y=float(actor_dict['y']),
-        z=float(actor_dict['z'])
+        x=float(actor_dict["x"]), y=float(actor_dict["y"]), z=float(actor_dict["z"])
     )
     return location
+
 
 class HighwayCutIn(BasicScenario):
     """
@@ -45,8 +47,16 @@ class HighwayCutIn(BasicScenario):
     ambulances or firetrucks.
     """
 
-    def __init__(self, world, ego_vehicles, config, randomize=False, debug_mode=False, criteria_enable=True,
-                 timeout=180):
+    def __init__(
+        self,
+        world,
+        ego_vehicles,
+        config,
+        randomize=False,
+        debug_mode=False,
+        criteria_enable=True,
+        timeout=180,
+    ):
         """
         Setup all relevant parameters and create scenario
         and instantiate scenario manager
@@ -62,14 +72,18 @@ class HighwayCutIn(BasicScenario):
         self._cut_in_distance = 10
         self._extra_space = 170
 
-        self._start_location = convert_dict_to_location(config.other_parameters['other_actor_location'])
+        self._start_location = convert_dict_to_location(
+            config.other_parameters["other_actor_location"]
+        )
 
-        super().__init__("HighwayCutIn",
-                         ego_vehicles,
-                         config,
-                         world,
-                         debug_mode,
-                         criteria_enable=criteria_enable)
+        super().__init__(
+            "HighwayCutIn",
+            ego_vehicles,
+            config,
+            world,
+            debug_mode,
+            criteria_enable=criteria_enable,
+        )
 
     def _initialize_actors(self, config):
         """
@@ -79,15 +93,18 @@ class HighwayCutIn(BasicScenario):
         self._other_transform = self._other_waypoint.transform
 
         self._cut_in_vehicle = CarlaDataProvider.request_new_actor(
-            'vehicle.*', self._other_transform, rolename='scenario',
-            attribute_filter={'base_type': 'car', 'has_lights': True}
+            "vehicle.*",
+            self._other_transform,
+            rolename="scenario",
+            attribute_filter={"base_type": "car", "has_lights": True},
         )
         self.other_actors.append(self._cut_in_vehicle)
 
         # Move below ground
-        self._cut_in_vehicle.set_location(self._other_transform.location - carla.Location(z=100))
+        self._cut_in_vehicle.set_location(
+            self._other_transform.location - carla.Location(z=100)
+        )
         self._cut_in_vehicle.set_simulate_physics(False)
-
 
     def _create_behavior(self):
         """
@@ -97,15 +114,19 @@ class HighwayCutIn(BasicScenario):
         behavior = py_trees.composites.Sequence("HighwayCutIn")
 
         if self.route_mode:
-            behavior.add_child(HandleJunctionScenario(
-                clear_junction=True,
-                clear_ego_entry=False,
-                remove_entries=[self._other_waypoint],
-                remove_exits=[],
-                stop_entries=False,
-                extend_road_exit=self._extra_space
-            ))
-        behavior.add_child(ActorTransformSetter(self._cut_in_vehicle, self._other_transform))
+            behavior.add_child(
+                HandleJunctionScenario(
+                    clear_junction=True,
+                    clear_ego_entry=False,
+                    remove_entries=[self._other_waypoint],
+                    remove_exits=[],
+                    stop_entries=False,
+                    extend_road_exit=self._extra_space,
+                )
+            )
+        behavior.add_child(
+            ActorTransformSetter(self._cut_in_vehicle, self._other_transform)
+        )
 
         # Sync behavior
         target_wp = generate_target_waypoint(self._other_waypoint)
@@ -116,13 +137,28 @@ class HighwayCutIn(BasicScenario):
 
         trigger_wp = self._map.get_waypoint(self.config.trigger_points[0].location)
         reference_wp = generate_target_waypoint(trigger_wp)
-        behavior.add_child(SyncArrivalWithAgent(
-            self._cut_in_vehicle, self.ego_vehicles[0], target_wp.transform, reference_wp.transform, 5))
+        behavior.add_child(
+            SyncArrivalWithAgent(
+                self._cut_in_vehicle,
+                self.ego_vehicles[0],
+                target_wp.transform,
+                reference_wp.transform,
+                5,
+            )
+        )
 
         # Cut in
-        behavior.add_child(CutIn(
-            self._cut_in_vehicle, self.ego_vehicles[0], 'left', self._speed_perc,
-            self._same_lane_time, self._other_lane_time, self._change_time, name="Cut_in")
+        behavior.add_child(
+            CutIn(
+                self._cut_in_vehicle,
+                self.ego_vehicles[0],
+                "left",
+                self._speed_perc,
+                self._same_lane_time,
+                self._other_lane_time,
+                self._change_time,
+                name="Cut_in",
+            )
         )
         behavior.add_child(ActorDestroy(self._cut_in_vehicle))
         return behavior

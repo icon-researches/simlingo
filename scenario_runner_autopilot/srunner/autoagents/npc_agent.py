@@ -17,7 +17,6 @@ from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
 
 
 class NpcAgent(AutonomousAgent):
-
     """
     NPC autonomous agent to control the ego vehicle
     """
@@ -50,8 +49,19 @@ class NpcAgent(AutonomousAgent):
         """
 
         sensors = [
-            {'type': 'sensor.camera.rgb', 'x': 0.7, 'y': -0.4, 'z': 1.60, 'roll': 0.0, 'pitch': 0.0, 'yaw': 0.0,
-             'width': 300, 'height': 200, 'fov': 100, 'id': 'Left'},
+            {
+                "type": "sensor.camera.rgb",
+                "x": 0.7,
+                "y": -0.4,
+                "z": 1.60,
+                "roll": 0.0,
+                "pitch": 0.0,
+                "yaw": 0.0,
+                "width": 300,
+                "height": 200,
+                "fov": 100,
+                "id": "Left",
+            },
         ]
 
         return sensors
@@ -65,7 +75,10 @@ class NpcAgent(AutonomousAgent):
             # Search for the ego actor
             hero_actor = None
             for actor in CarlaDataProvider.get_world().get_actors():
-                if 'role_name' in actor.attributes and actor.attributes['role_name'] == 'hero':
+                if (
+                    "role_name" in actor.attributes
+                    and actor.attributes["role_name"] == "hero"
+                ):
                     hero_actor = actor
                     break
 

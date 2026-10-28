@@ -8,7 +8,11 @@ import wandb
 from deepspeed.utils.zero_to_fp32 import get_fp32_state_dict_from_zero_checkpoint
 import pytorch_lightning as pl
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import LearningRateMonitor, ModelSummary, ThroughputMonitor
+from pytorch_lightning.callbacks import (
+    LearningRateMonitor,
+    ModelSummary,
+    ThroughputMonitor,
+)
 from pytorch_lightning.loggers import CSVLogger, WandbLogger, TensorBoardLogger
 from transformers import AutoProcessor
 
@@ -26,28 +30,30 @@ def main(cfg: TrainConfig):
     # turn off wandb uploading when in debug mode
     if cfg.debug:
         os.environ["WANDB_MODE"] = "offline"
-    
+
     cfg.wandb_name = f"{cfg.wandb_name}_{cfg.name}"
-    
-    processor = AutoProcessor.from_pretrained(cfg.model.vision_model.variant, trust_remote_code=True)
-    model_type_name = cfg.model.vision_model.variant.split('/')[1]
-    cache_dir = None #f"pretrained/{(model_type_name)}"
-    
+
+    processor = AutoProcessor.from_pretrained(
+        cfg.model.vision_model.variant, trust_remote_code=True
+    )
+    model_type_name = cfg.model.vision_model.variant.split("/")[1]
+    cache_dir = None  # f"pretrained/{(model_type_name)}"
+
     data_module = hydra.utils.instantiate(
-        cfg.data_module, 
+        cfg.data_module,
         processor=processor,
         encoder_variant=cfg.model.vision_model.variant,
         llm_variant=cfg.model.language_model.variant,
-        _recursive_=False
+        _recursive_=False,
     )
-    
+
     model = hydra.utils.instantiate(
         cfg.model,
         cfg_data_module=cfg.data_module,
         processor=processor,
         cache_dir=cache_dir,
-        _recursive_=False
-        )
+        _recursive_=False,
+    )
 
     if cfg.checkpoint is not None:
         if os.path.isdir(cfg.checkpoint):
@@ -56,14 +62,13 @@ def main(cfg: TrainConfig):
             state_dict = torch.load(cfg.checkpoint, map_location="cpu")
         model.load_state_dict(state_dict)
 
-        
     # print config
     print(OmegaConf.to_yaml(cfg))
     os.environ["WANDB_DISABLE_CODE"] = "True"
-    
+
     if cfg.overfit > 0:
         overfit = cfg.overfit
-        
+
     # setup logging
     setup_logging(cfg)
 
@@ -102,7 +107,9 @@ def main(cfg: TrainConfig):
     strategy = cfg.strategy
     if strategy == "deepspeed_stage_2":
         strategy = pl.strategies.DeepSpeedStrategy(
-            stage=2, loss_scale=cfg.fp16_loss_scale, logging_batch_size_per_gpu=cfg.data_module.batch_size
+            stage=2,
+            loss_scale=cfg.fp16_loss_scale,
+            logging_batch_size_per_gpu=cfg.data_module.batch_size,
         )
 
     checkpoint_callback = pl.callbacks.ModelCheckpoint(
@@ -115,20 +122,20 @@ def main(cfg: TrainConfig):
         # every_n_train_steps=cfg.val_check_interval,
     )
 
-    lr_monitor = LearningRateMonitor(logging_interval='step')
+    lr_monitor = LearningRateMonitor(logging_interval="step")
     model_summary = ModelSummary(max_depth=3)
-    callbacks=[
-        checkpoint_callback, 
-        model_summary, 
-        # ThroughputMonitor(batch_size_fn=lambda batch: batch.driving_input.camera_images.size(0)), 
-        VisualiseCallback(interval=1000, val_interval=1000)
+    callbacks = [
+        checkpoint_callback,
+        model_summary,
+        # ThroughputMonitor(batch_size_fn=lambda batch: batch.driving_input.camera_images.size(0)),
+        VisualiseCallback(interval=1000, val_interval=1000),
     ]
-    if not cfg.debug: 
+    if not cfg.debug:
         callbacks.append(lr_monitor)
-    
+
     print(f"Number of GPUS: {cfg.gpus}")
     overfit = 0
-    
+
     if cfg.gpus >= 1:
         trainer = Trainer(
             accelerator="gpu",
@@ -153,6 +160,7 @@ def main(cfg: TrainConfig):
 
     trainer.fit(model, data_module, ckpt_path=resume_path)
     wandb.finish()
+
 
 if __name__ == "__main__":
     main()

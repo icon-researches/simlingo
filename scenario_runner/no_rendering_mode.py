@@ -39,10 +39,16 @@ import os
 import sys
 
 try:
-    sys.path.append(glob.glob('../carla/dist/carla-*%d.%d-%s.egg' % (
-        sys.version_info.major,
-        sys.version_info.minor,
-        'win-amd64' if os.name == 'nt' else 'linux-x86_64'))[0])
+    sys.path.append(
+        glob.glob(
+            "../carla/dist/carla-*%d.%d-%s.egg"
+            % (
+                sys.version_info.major,
+                sys.version_info.minor,
+                "win-amd64" if os.name == "nt" else "linux-x86_64",
+            )
+        )[0]
+    )
 except IndexError:
     pass
 
@@ -85,7 +91,7 @@ try:
     from pygame.locals import K_s
     from pygame.locals import K_w
 except ImportError:
-    raise RuntimeError('cannot import pygame, make sure pygame package is installed')
+    raise RuntimeError("cannot import pygame, make sure pygame package is installed")
 
 # ==============================================================================
 # -- Constants -----------------------------------------------------------------
@@ -138,9 +144,9 @@ COLOR_BLACK = pygame.Color(0, 0, 0)
 
 
 # Module Defines
-MODULE_WORLD = 'WORLD'
-MODULE_HUD = 'HUD'
-MODULE_INPUT = 'INPUT'
+MODULE_WORLD = "WORLD"
+MODULE_HUD = "HUD"
+MODULE_INPUT = "INPUT"
 
 PIXELS_PER_METER = 12
 
@@ -155,8 +161,8 @@ PIXELS_AHEAD_VEHICLE = 150
 
 
 def get_actor_display_name(actor, truncate=250):
-    name = ' '.join(actor.type_id.replace('_', '.').title().split('.')[1:])
-    return (name[:truncate - 1] + u'\u2026') if len(name) > truncate else name
+    name = " ".join(actor.type_id.replace("_", ".").title().split(".")[1:])
+    return (name[: truncate - 1] + "\u2026") if len(name) > truncate else name
 
 
 class Util(object):
@@ -173,15 +179,18 @@ class Util(object):
     @staticmethod
     def get_bounding_box(actor):
         bb = actor.trigger_volume.extent
-        corners = [carla.Location(x=-bb.x, y=-bb.y),
-                   carla.Location(x=bb.x, y=-bb.y),
-                   carla.Location(x=bb.x, y=bb.y),
-                   carla.Location(x=-bb.x, y=bb.y),
-                   carla.Location(x=-bb.x, y=-bb.y)]
+        corners = [
+            carla.Location(x=-bb.x, y=-bb.y),
+            carla.Location(x=bb.x, y=-bb.y),
+            carla.Location(x=bb.x, y=bb.y),
+            carla.Location(x=-bb.x, y=bb.y),
+            carla.Location(x=-bb.x, y=-bb.y),
+        ]
         corners = [x + actor.trigger_volume.location for x in corners]
         t = actor.get_transform()
         t.transform(corners)
         return corners
+
 
 # ==============================================================================
 # -- ModuleManager -------------------------------------------------------------
@@ -254,7 +263,7 @@ class FadingText(object):
 
 class HelpText(object):
     def __init__(self, font, width, height):
-        lines = __doc__.split('\n')
+        lines = __doc__.split("\n")
         self.font = font
         self.dim = (680, len(lines) * 22 + 12)
         self.pos = (0.5 * width - 0.5 * self.dim[0], 0.5 * height - 0.5 * self.dim[1])
@@ -280,7 +289,7 @@ class HelpText(object):
 # ==============================================================================
 
 
-class ModuleHUD (object):
+class ModuleHUD(object):
 
     def __init__(self, name, width, height):
         self.name = name
@@ -292,16 +301,18 @@ class ModuleHUD (object):
         pass
 
     def _init_hud_params(self):
-        fonts = [x for x in pygame.font.get_fonts() if 'mono' in x]
-        default_font = 'ubuntumono'
+        fonts = [x for x in pygame.font.get_fonts() if "mono" in x]
+        default_font = "ubuntumono"
         mono = default_font if default_font in fonts else fonts[0]
         mono = pygame.font.match_font(mono)
         self._font_mono = pygame.font.Font(mono, 14)
-        self._header_font = pygame.font.SysFont('Arial', 14, True)
+        self._header_font = pygame.font.SysFont("Arial", 14, True)
         self.help = HelpText(pygame.font.Font(mono, 24), *self.dim)
         self._notifications = FadingText(
             pygame.font.Font(pygame.font.get_default_font(), 20),
-            (self.dim[0], 40), (0, self.dim[1] - 40))
+            (self.dim[0], 40),
+            (0, self.dim[1] - 40),
+        )
 
     def _init_data_params(self):
         self.show_info = True
@@ -317,7 +328,14 @@ class ModuleHUD (object):
     def add_info(self, module_name, info):
         self._info_text[module_name] = info
 
-    def render_vehicles_ids(self, vehicle_id_surface, list_actors, world_to_pixel, hero_actor, hero_transform):
+    def render_vehicles_ids(
+        self,
+        vehicle_id_surface,
+        list_actors,
+        world_to_pixel,
+        hero_actor,
+        hero_transform,
+    ):
         vehicle_id_surface.fill(COLOR_BLACK)
         if self.show_actor_ids:
             vehicle_id_surface.set_alpha(150)
@@ -329,9 +347,9 @@ class ModuleHUD (object):
                     angle = -hero_transform.rotation.yaw - 90
 
                 color = COLOR_SKY_BLUE_0
-                if int(actor[0].attributes['number_of_wheels']) == 2:
+                if int(actor[0].attributes["number_of_wheels"]) == 2:
                     color = COLOR_CHOCOLATE_0
-                if actor[0].attributes['role_name'] == 'hero':
+                if actor[0].attributes["role_name"] == "hero":
                     color = COLOR_CHAMELEON_0
 
                 font_surface = self._header_font.render(str(actor[0].id), True, color)
@@ -353,7 +371,9 @@ class ModuleHUD (object):
             for module_name, module_info in self._info_text.items():
                 if not module_info:
                     continue
-                surface = self._header_font.render(module_name, True, COLOR_ALUMINIUM_0).convert_alpha()
+                surface = self._header_font.render(
+                    module_name, True, COLOR_ALUMINIUM_0
+                ).convert_alpha()
                 display.blit(surface, (8 + bar_width / 2, 18 * i + v_offset))
                 v_offset += 12
                 i += 1
@@ -362,25 +382,39 @@ class ModuleHUD (object):
                         break
                     if isinstance(item, list):
                         if len(item) > 1:
-                            points = [(x + 8, v_offset + 8 + (1.0 - y) * 30) for x, y in enumerate(item)]
+                            points = [
+                                (x + 8, v_offset + 8 + (1.0 - y) * 30)
+                                for x, y in enumerate(item)
+                            ]
                             pygame.draw.lines(display, (255, 136, 0), False, points, 2)
                         item = None
                     elif isinstance(item, tuple):
                         if isinstance(item[1], bool):
                             rect = pygame.Rect((bar_h_offset, v_offset + 8), (6, 6))
-                            pygame.draw.rect(display, COLOR_ALUMINIUM_0, rect, 0 if item[1] else 1)
+                            pygame.draw.rect(
+                                display, COLOR_ALUMINIUM_0, rect, 0 if item[1] else 1
+                            )
                         else:
-                            rect_border = pygame.Rect((bar_h_offset, v_offset + 8), (bar_width, 6))
+                            rect_border = pygame.Rect(
+                                (bar_h_offset, v_offset + 8), (bar_width, 6)
+                            )
                             pygame.draw.rect(display, COLOR_ALUMINIUM_0, rect_border, 1)
                             f = (item[1] - item[2]) / (item[3] - item[2])
                             if item[2] < 0.0:
-                                rect = pygame.Rect((bar_h_offset + f * (bar_width - 6), v_offset + 8), (6, 6))
+                                rect = pygame.Rect(
+                                    (bar_h_offset + f * (bar_width - 6), v_offset + 8),
+                                    (6, 6),
+                                )
                             else:
-                                rect = pygame.Rect((bar_h_offset, v_offset + 8), (f * bar_width, 6))
+                                rect = pygame.Rect(
+                                    (bar_h_offset, v_offset + 8), (f * bar_width, 6)
+                                )
                             pygame.draw.rect(display, COLOR_ALUMINIUM_0, rect)
                         item = item[0]
                     if item:  # At this point has to be a str.
-                        surface = self._font_mono.render(item, True, COLOR_ALUMINIUM_0).convert_alpha()
+                        surface = self._font_mono.render(
+                            item, True, COLOR_ALUMINIUM_0
+                        ).convert_alpha()
                         display.blit(surface, (8, 18 * i + v_offset))
                     v_offset += 18
                 v_offset += 24
@@ -400,24 +434,39 @@ class TrafficLightSurfaces(object):
         def make_surface(tl):
             w = 40
             surface = pygame.Surface((w, 3 * w), pygame.SRCALPHA)
-            surface.fill(COLOR_ALUMINIUM_5 if tl != 'h' else COLOR_ORANGE_2)
-            if tl != 'h':
+            surface.fill(COLOR_ALUMINIUM_5 if tl != "h" else COLOR_ORANGE_2)
+            if tl != "h":
                 hw = int(w / 2)
                 off = COLOR_ALUMINIUM_4
                 red = COLOR_SCARLET_RED_0
                 yellow = COLOR_BUTTER_0
                 green = COLOR_CHAMELEON_0
-                pygame.draw.circle(surface, red if tl == tls.Red else off, (hw, hw), int(0.4 * w))
-                pygame.draw.circle(surface, yellow if tl == tls.Yellow else off, (hw, w + hw), int(0.4 * w))
-                pygame.draw.circle(surface, green if tl == tls.Green else off, (hw, 2 * w + hw), int(0.4 * w))
-            return pygame.transform.smoothscale(surface, (15, 45) if tl != 'h' else (19, 49))
+                pygame.draw.circle(
+                    surface, red if tl == tls.Red else off, (hw, hw), int(0.4 * w)
+                )
+                pygame.draw.circle(
+                    surface,
+                    yellow if tl == tls.Yellow else off,
+                    (hw, w + hw),
+                    int(0.4 * w),
+                )
+                pygame.draw.circle(
+                    surface,
+                    green if tl == tls.Green else off,
+                    (hw, 2 * w + hw),
+                    int(0.4 * w),
+                )
+            return pygame.transform.smoothscale(
+                surface, (15, 45) if tl != "h" else (19, 49)
+            )
+
         self._original_surfaces = {
-            'h': make_surface('h'),
+            "h": make_surface("h"),
             tls.Red: make_surface(tls.Red),
             tls.Yellow: make_surface(tls.Yellow),
             tls.Green: make_surface(tls.Green),
             tls.Off: make_surface(tls.Off),
-            tls.Unknown: make_surface(tls.Unknown)
+            tls.Unknown: make_surface(tls.Unknown),
         }
         self.surfaces = dict(self._original_surfaces)
 
@@ -432,7 +481,15 @@ class TrafficLightSurfaces(object):
 
 
 class MapImage(object):
-    def __init__(self, carla_world, carla_map, pixels_per_meter, show_triggers, show_connections, show_spawn_points):
+    def __init__(
+        self,
+        carla_world,
+        carla_map,
+        pixels_per_meter,
+        show_triggers,
+        show_connections,
+        show_spawn_points,
+    ):
         self._pixels_per_meter = pixels_per_meter
         self.scale = 1.0
         self.show_triggers = show_triggers
@@ -441,21 +498,43 @@ class MapImage(object):
 
         waypoints = carla_map.generate_waypoints(2)
         margin = 50
-        max_x = max(waypoints, key=lambda x: x.transform.location.x).transform.location.x + margin
-        max_y = max(waypoints, key=lambda x: x.transform.location.y).transform.location.y + margin
-        min_x = min(waypoints, key=lambda x: x.transform.location.x).transform.location.x - margin
-        min_y = min(waypoints, key=lambda x: x.transform.location.y).transform.location.y - margin
+        max_x = (
+            max(waypoints, key=lambda x: x.transform.location.x).transform.location.x
+            + margin
+        )
+        max_y = (
+            max(waypoints, key=lambda x: x.transform.location.y).transform.location.y
+            + margin
+        )
+        min_x = (
+            min(waypoints, key=lambda x: x.transform.location.x).transform.location.x
+            - margin
+        )
+        min_y = (
+            min(waypoints, key=lambda x: x.transform.location.y).transform.location.y
+            - margin
+        )
 
         self.width = max(max_x - min_x, max_y - min_y)
         self._world_offset = (min_x, min_y)
 
         width_in_pixels = int(self._pixels_per_meter * self.width)
 
-        self.big_map_surface = pygame.Surface((width_in_pixels, width_in_pixels)).convert()
-        self.draw_road_map(self.big_map_surface, carla_world, carla_map, self.world_to_pixel, self.world_to_pixel_width)
+        self.big_map_surface = pygame.Surface(
+            (width_in_pixels, width_in_pixels)
+        ).convert()
+        self.draw_road_map(
+            self.big_map_surface,
+            carla_world,
+            carla_map,
+            self.world_to_pixel,
+            self.world_to_pixel_width,
+        )
         self.surface = self.big_map_surface
 
-    def draw_road_map(self, map_surface, carla_world, carla_map, world_to_pixel, world_to_pixel_width):
+    def draw_road_map(
+        self, map_surface, carla_world, carla_map, world_to_pixel, world_to_pixel_width
+    ):
         map_surface.fill(COLOR_ALUMINIUM_4)
         precision = 0.05
 
@@ -484,28 +563,63 @@ class MapImage(object):
                 pygame.draw.lines(surface, color, closed, points, width)
 
         def draw_broken_line(surface, color, closed, points, width):
-            broken_lines = [x for n, x in enumerate(zip(*(iter(points),) * 20)) if n % 3 == 0]
+            broken_lines = [
+                x for n, x in enumerate(zip(*(iter(points),) * 20)) if n % 3 == 0
+            ]
             for line in broken_lines:
                 pygame.draw.lines(surface, color, closed, line, width)
 
         def get_lane_markings(lane_marking_type, lane_marking_color, waypoints, sign):
             margin = 0.20
-            if lane_marking_type == carla.LaneMarkingType.Broken or (lane_marking_type == carla.LaneMarkingType.Solid):
-                marking_1 = [world_to_pixel(lateral_shift(w.transform, sign * w.lane_width * 0.5)) for w in waypoints]
+            if lane_marking_type == carla.LaneMarkingType.Broken or (
+                lane_marking_type == carla.LaneMarkingType.Solid
+            ):
+                marking_1 = [
+                    world_to_pixel(
+                        lateral_shift(w.transform, sign * w.lane_width * 0.5)
+                    )
+                    for w in waypoints
+                ]
                 return [(lane_marking_type, lane_marking_color, marking_1)]
-            elif lane_marking_type == carla.LaneMarkingType.SolidBroken or lane_marking_type == carla.LaneMarkingType.BrokenSolid:
-                marking_1 = [world_to_pixel(lateral_shift(w.transform, sign * w.lane_width * 0.5)) for w in waypoints]
-                marking_2 = [world_to_pixel(lateral_shift(w.transform,
-                                                          sign * (w.lane_width * 0.5 + margin * 2))) for w in waypoints]
-                return [(carla.LaneMarkingType.Solid, lane_marking_color, marking_1),
-                        (carla.LaneMarkingType.Broken, lane_marking_color, marking_2)]
+            elif (
+                lane_marking_type == carla.LaneMarkingType.SolidBroken
+                or lane_marking_type == carla.LaneMarkingType.BrokenSolid
+            ):
+                marking_1 = [
+                    world_to_pixel(
+                        lateral_shift(w.transform, sign * w.lane_width * 0.5)
+                    )
+                    for w in waypoints
+                ]
+                marking_2 = [
+                    world_to_pixel(
+                        lateral_shift(
+                            w.transform, sign * (w.lane_width * 0.5 + margin * 2)
+                        )
+                    )
+                    for w in waypoints
+                ]
+                return [
+                    (carla.LaneMarkingType.Solid, lane_marking_color, marking_1),
+                    (carla.LaneMarkingType.Broken, lane_marking_color, marking_2),
+                ]
             elif lane_marking_type == carla.LaneMarkingType.BrokenBroken:
-                marking = [world_to_pixel(lateral_shift(w.transform,
-                                                        sign * (w.lane_width * 0.5 - margin))) for w in waypoints]
+                marking = [
+                    world_to_pixel(
+                        lateral_shift(w.transform, sign * (w.lane_width * 0.5 - margin))
+                    )
+                    for w in waypoints
+                ]
                 return [(carla.LaneMarkingType.Broken, lane_marking_color, marking)]
             elif lane_marking_type == carla.LaneMarkingType.SolidSolid:
-                marking = [world_to_pixel(lateral_shift(w.transform,
-                                                        sign * ((w.lane_width * 0.5) - margin))) for w in waypoints]
+                marking = [
+                    world_to_pixel(
+                        lateral_shift(
+                            w.transform, sign * ((w.lane_width * 0.5) - margin)
+                        )
+                    )
+                    for w in waypoints
+                ]
                 return [(carla.LaneMarkingType.Solid, lane_marking_color, marking)]
 
             return [(carla.LaneMarkingType.NONE, carla.LaneMarkingColor.Other, [])]
@@ -524,7 +638,9 @@ class MapImage(object):
             temp_waypoints = []
             current_lane_marking = carla.LaneMarkingType.NONE
             for sample in waypoints:
-                lane_marking = sample.left_lane_marking if sign < 0 else sample.right_lane_marking
+                lane_marking = (
+                    sample.left_lane_marking if sign < 0 else sample.right_lane_marking
+                )
 
                 if lane_marking is None:
                     continue
@@ -537,7 +653,8 @@ class MapImage(object):
                         previous_marking_type,
                         lane_marking_color_to_tango(previous_marking_color),
                         temp_waypoints,
-                        sign)
+                        sign,
+                    )
                     current_lane_marking = marking_type
 
                     for marking in markings:
@@ -555,7 +672,8 @@ class MapImage(object):
                 previous_marking_type,
                 lane_marking_color_to_tango(previous_marking_color),
                 temp_waypoints,
-                sign)
+                sign,
+            )
             for marking in last_markings:
                 waypoints_list.append(marking)
 
@@ -575,15 +693,23 @@ class MapImage(object):
             right = start + 0.8 * forward + 0.4 * right_dir
             left = start + 0.8 * forward - 0.4 * right_dir
             pygame.draw.lines(
-                surface, color, False, [
-                    world_to_pixel(x) for x in [
-                        start, end]], 4)
+                surface, color, False, [world_to_pixel(x) for x in [start, end]], 4
+            )
             pygame.draw.lines(
-                surface, color, False, [
-                    world_to_pixel(x) for x in [
-                        left, start, right]], 4)
+                surface,
+                color,
+                False,
+                [world_to_pixel(x) for x in [left, start, right]],
+                4,
+            )
 
-        def draw_traffic_signs(surface, font_surface, actor, color=COLOR_ALUMINIUM_2, trigger_color=COLOR_PLUM_0):
+        def draw_traffic_signs(
+            surface,
+            font_surface,
+            actor,
+            color=COLOR_ALUMINIUM_2,
+            trigger_color=COLOR_PLUM_0,
+        ):
             transform = actor.get_transform()
             waypoint = carla_map.get_waypoint(transform.location)
 
@@ -595,11 +721,17 @@ class MapImage(object):
 
             # Draw line in front of stop
             forward_vector = carla.Location(waypoint.transform.get_forward_vector())
-            left_vector = carla.Location(-forward_vector.y, forward_vector.x,
-                                         forward_vector.z) * waypoint.lane_width / 2 * 0.7
+            left_vector = (
+                carla.Location(-forward_vector.y, forward_vector.x, forward_vector.z)
+                * waypoint.lane_width
+                / 2
+                * 0.7
+            )
 
-            line = [(waypoint.transform.location + (forward_vector * 1.5) + (left_vector)),
-                    (waypoint.transform.location + (forward_vector * 1.5) - (left_vector))]
+            line = [
+                (waypoint.transform.location + (forward_vector * 1.5) + (left_vector)),
+                (waypoint.transform.location + (forward_vector * 1.5) - (left_vector)),
+            ]
 
             line_pixel = [world_to_pixel(p) for p in line]
             pygame.draw.lines(surface, color, True, line_pixel, 2)
@@ -633,8 +765,12 @@ class MapImage(object):
                             break
 
                 # Draw Road
-                road_left_side = [lateral_shift(w.transform, -w.lane_width * 0.5) for w in waypoints]
-                road_right_side = [lateral_shift(w.transform, w.lane_width * 0.5) for w in waypoints]
+                road_left_side = [
+                    lateral_shift(w.transform, -w.lane_width * 0.5) for w in waypoints
+                ]
+                road_right_side = [
+                    lateral_shift(w.transform, w.lane_width * 0.5) for w in waypoints
+                ]
 
                 polygon = road_left_side + [x for x in reversed(road_right_side)]
                 polygon = [world_to_pixel(x) for x in polygon]
@@ -654,61 +790,65 @@ class MapImage(object):
                 for w in waypoints:
                     r = w.get_right_lane()
                     if r is not None and (
-                            r.lane_type == carla.LaneType.Shoulder or r.lane_type == carla.LaneType.Parking):
+                        r.lane_type == carla.LaneType.Shoulder
+                        or r.lane_type == carla.LaneType.Parking
+                    ):
                         if r.lane_type == carla.LaneType.Parking:
                             final_color = PARKING_COLOR
                         shoulder.append(r)
 
-                shoulder_left_side = [lateral_shift(w.transform, -w.lane_width * 0.5) for w in shoulder]
-                shoulder_right_side = [lateral_shift(w.transform, w.lane_width * 0.5) for w in shoulder]
+                shoulder_left_side = [
+                    lateral_shift(w.transform, -w.lane_width * 0.5) for w in shoulder
+                ]
+                shoulder_right_side = [
+                    lateral_shift(w.transform, w.lane_width * 0.5) for w in shoulder
+                ]
 
-                polygon = shoulder_left_side + [x for x in reversed(shoulder_right_side)]
+                polygon = shoulder_left_side + [
+                    x for x in reversed(shoulder_right_side)
+                ]
                 polygon = [world_to_pixel(x) for x in polygon]
 
                 if len(polygon) > 2:
                     pygame.draw.polygon(map_surface, final_color, polygon, 5)
                     pygame.draw.polygon(map_surface, final_color, polygon)
 
-                draw_lane_marking(
-                    map_surface,
-                    shoulder,
-                    False)
+                draw_lane_marking(map_surface, shoulder, False)
 
                 # Draw Left
                 shoulder = []
                 for w in waypoints:
                     r = w.get_left_lane()
                     if r is not None and (
-                            r.lane_type == carla.LaneType.Shoulder or r.lane_type == carla.LaneType.Parking):
+                        r.lane_type == carla.LaneType.Shoulder
+                        or r.lane_type == carla.LaneType.Parking
+                    ):
                         if r.lane_type == carla.LaneType.Parking:
                             final_color = PARKING_COLOR
                         shoulder.append(r)
 
-                shoulder_left_side = [lateral_shift(w.transform, -w.lane_width * 0.5) for w in shoulder]
-                shoulder_right_side = [lateral_shift(w.transform, w.lane_width * 0.5) for w in shoulder]
+                shoulder_left_side = [
+                    lateral_shift(w.transform, -w.lane_width * 0.5) for w in shoulder
+                ]
+                shoulder_right_side = [
+                    lateral_shift(w.transform, w.lane_width * 0.5) for w in shoulder
+                ]
 
-                polygon = shoulder_left_side + [x for x in reversed(shoulder_right_side)]
+                polygon = shoulder_left_side + [
+                    x for x in reversed(shoulder_right_side)
+                ]
                 polygon = [world_to_pixel(x) for x in polygon]
 
                 if len(polygon) > 2:
                     pygame.draw.polygon(map_surface, final_color, polygon, 5)
                     pygame.draw.polygon(map_surface, final_color, polygon)
 
-                draw_lane_marking(
-                    map_surface,
-                    shoulder,
-                    True)
+                draw_lane_marking(map_surface, shoulder, True)
 
                 # Draw Lane Markings and Arrows
                 if not waypoint.is_intersection:
-                    draw_lane_marking(
-                        map_surface,
-                        waypoints,
-                        True)
-                    draw_lane_marking(
-                        map_surface,
-                        waypoints,
-                        False)
+                    draw_lane_marking(map_surface, waypoints, True)
+                    draw_lane_marking(map_surface, waypoints, False)
                     for n, wp in enumerate(waypoints):
                         if ((n + 1) % 400) == 0:
                             draw_arrow(map_surface, wp.transform)
@@ -741,24 +881,35 @@ class MapImage(object):
 
         # Draw Traffic Signs
         font_size = world_to_pixel_width(1)
-        font = pygame.font.SysFont('Arial', font_size, True)
+        font = pygame.font.SysFont("Arial", font_size, True)
 
-        stops = [actor for actor in actors if 'stop' in actor.type_id]
-        yields = [actor for actor in actors if 'yield' in actor.type_id]
+        stops = [actor for actor in actors if "stop" in actor.type_id]
+        yields = [actor for actor in actors if "yield" in actor.type_id]
 
         stop_font_surface = font.render("STOP", False, COLOR_ALUMINIUM_2)
         stop_font_surface = pygame.transform.scale(
-            stop_font_surface, (stop_font_surface.get_width(), stop_font_surface.get_height() * 2))
+            stop_font_surface,
+            (stop_font_surface.get_width(), stop_font_surface.get_height() * 2),
+        )
 
         yield_font_surface = font.render("YIELD", False, COLOR_ALUMINIUM_2)
         yield_font_surface = pygame.transform.scale(
-            yield_font_surface, (yield_font_surface.get_width(), yield_font_surface.get_height() * 2))
+            yield_font_surface,
+            (yield_font_surface.get_width(), yield_font_surface.get_height() * 2),
+        )
 
         for ts_stop in stops:
-            draw_traffic_signs(map_surface, stop_font_surface, ts_stop, trigger_color=COLOR_SCARLET_RED_1)
+            draw_traffic_signs(
+                map_surface,
+                stop_font_surface,
+                ts_stop,
+                trigger_color=COLOR_SCARLET_RED_1,
+            )
 
         for ts_yield in yields:
-            draw_traffic_signs(map_surface, yield_font_surface, ts_yield, trigger_color=COLOR_ORANGE_1)
+            draw_traffic_signs(
+                map_surface, yield_font_surface, ts_yield, trigger_color=COLOR_ORANGE_1
+            )
 
     def world_to_pixel(self, location, offset=(0, 0)):
         x = self.scale * self._pixels_per_meter * (location.x - self._world_offset[0])
@@ -772,7 +923,9 @@ class MapImage(object):
         if scale != self.scale:
             self.scale = scale
             width = int(self.big_map_surface.get_width() * self.scale)
-            self.surface = pygame.transform.smoothscale(self.big_map_surface, (width, width))
+            self.surface = pygame.transform.smoothscale(
+                self.big_map_surface, (width, width)
+            )
 
 
 class ModuleWorld(object):
@@ -843,7 +996,8 @@ class ModuleWorld(object):
             pixels_per_meter=PIXELS_PER_METER,
             show_triggers=self.args.show_triggers,
             show_connections=self.args.show_connections,
-            show_spawn_points=self.args.show_spawn_points)
+            show_spawn_points=self.args.show_spawn_points,
+        )
 
         # Store necessary modules
         self.module_hud = module_manager.get_module(MODULE_HUD)
@@ -856,24 +1010,47 @@ class ModuleWorld(object):
         self.prev_scaled_size = int(self.surface_size)
 
         # Render Actors
-        self.actors_surface = pygame.Surface((self.map_image.surface.get_width(), self.map_image.surface.get_height()))
+        self.actors_surface = pygame.Surface(
+            (self.map_image.surface.get_width(), self.map_image.surface.get_height())
+        )
         self.actors_surface.set_colorkey(COLOR_BLACK)
 
-        self.vehicle_id_surface = pygame.Surface((self.surface_size, self.surface_size)).convert()
+        self.vehicle_id_surface = pygame.Surface(
+            (self.surface_size, self.surface_size)
+        ).convert()
         self.vehicle_id_surface.set_colorkey(COLOR_BLACK)
 
-        self.border_round_surface = pygame.Surface(self.module_hud.dim, pygame.SRCALPHA).convert()
+        self.border_round_surface = pygame.Surface(
+            self.module_hud.dim, pygame.SRCALPHA
+        ).convert()
         self.border_round_surface.set_colorkey(COLOR_WHITE)
         self.border_round_surface.fill(COLOR_BLACK)
 
-        center_offset = (int(self.module_hud.dim[0] / 2), int(self.module_hud.dim[1] / 2))
-        pygame.draw.circle(self.border_round_surface, COLOR_ALUMINIUM_1, center_offset, int(self.module_hud.dim[1] / 2))
-        pygame.draw.circle(self.border_round_surface, COLOR_WHITE, center_offset, int((self.module_hud.dim[1] - 8) / 2))
+        center_offset = (
+            int(self.module_hud.dim[0] / 2),
+            int(self.module_hud.dim[1] / 2),
+        )
+        pygame.draw.circle(
+            self.border_round_surface,
+            COLOR_ALUMINIUM_1,
+            center_offset,
+            int(self.module_hud.dim[1] / 2),
+        )
+        pygame.draw.circle(
+            self.border_round_surface,
+            COLOR_WHITE,
+            center_offset,
+            int((self.module_hud.dim[1] - 8) / 2),
+        )
 
         scaled_original_size = self.original_surface_size * (1.0 / 0.9)
-        self.hero_surface = pygame.Surface((scaled_original_size, scaled_original_size)).convert()
+        self.hero_surface = pygame.Surface(
+            (scaled_original_size, scaled_original_size)
+        ).convert()
 
-        self.result_surface = pygame.Surface((self.surface_size, self.surface_size)).convert()
+        self.result_surface = pygame.Surface(
+            (self.surface_size, self.surface_size)
+        ).convert()
         self.result_surface.set_colorkey(COLOR_BLACK)
 
         # Start hero mode by default
@@ -883,11 +1060,16 @@ class ModuleWorld(object):
         self.module_input.control = carla.VehicleControl()
 
         weak_self = weakref.ref(self)
-        self.world.on_tick(lambda timestamp: ModuleWorld.on_world_tick(weak_self, timestamp))
+        self.world.on_tick(
+            lambda timestamp: ModuleWorld.on_world_tick(weak_self, timestamp)
+        )
 
     def select_hero_actor(self):
-        hero_vehicles = [actor for actor in self.world.get_actors(
-        ) if 'vehicle' in actor.type_id and actor.attributes['role_name'] == 'hero']
+        hero_vehicles = [
+            actor
+            for actor in self.world.get_actors()
+            if "vehicle" in actor.type_id and actor.attributes["role_name"] == "hero"
+        ]
         if len(hero_vehicles) > 0:
             self.hero_actor = random.choice(hero_vehicles)
             self.hero_transform = self.hero_actor.get_transform()
@@ -896,15 +1078,19 @@ class ModuleWorld(object):
 
     def _spawn_hero(self):
         # Get a random blueprint.
-        blueprint = random.choice(self.world.get_blueprint_library().filter(self.args.filter))
-        blueprint.set_attribute('role_name', 'hero')
-        if blueprint.has_attribute('color'):
-            color = random.choice(blueprint.get_attribute('color').recommended_values)
-            blueprint.set_attribute('color', color)
+        blueprint = random.choice(
+            self.world.get_blueprint_library().filter(self.args.filter)
+        )
+        blueprint.set_attribute("role_name", "hero")
+        if blueprint.has_attribute("color"):
+            color = random.choice(blueprint.get_attribute("color").recommended_values)
+            blueprint.set_attribute("color", color)
         # Spawn the player.
         while self.hero_actor is None:
             spawn_points = self.world.get_map().get_spawn_points()
-            spawn_point = random.choice(spawn_points) if spawn_points else carla.Transform()
+            spawn_point = (
+                random.choice(spawn_points) if spawn_points else carla.Transform()
+            )
             self.hero_actor = self.world.try_spawn_actor(blueprint, spawn_point)
         self.hero_transform = self.hero_actor.get_transform()
 
@@ -913,7 +1099,9 @@ class ModuleWorld(object):
 
     def tick(self, clock):
         actors = self.world.get_actors()
-        self.actors_with_transforms = [(actor, actor.get_transform()) for actor in actors]
+        self.actors_with_transforms = [
+            (actor, actor.get_transform()) for actor in actors
+        ]
         if self.hero_actor is not None:
             self.hero_transform = self.hero_actor.get_transform()
         self.update_hud_info(clock)
@@ -922,45 +1110,51 @@ class ModuleWorld(object):
         hero_mode_text = []
         if self.hero_actor is not None:
             hero_speed = self.hero_actor.get_velocity()
-            hero_speed_text = 3.6 * math.sqrt(hero_speed.x ** 2 + hero_speed.y ** 2 + hero_speed.z ** 2)
+            hero_speed_text = 3.6 * math.sqrt(
+                hero_speed.x**2 + hero_speed.y**2 + hero_speed.z**2
+            )
 
-            affected_traffic_light_text = 'None'
+            affected_traffic_light_text = "None"
             if self.affected_traffic_light is not None:
                 state = self.affected_traffic_light.state
                 if state == carla.TrafficLightState.Green:
-                    affected_traffic_light_text = 'GREEN'
+                    affected_traffic_light_text = "GREEN"
                 elif state == carla.TrafficLightState.Yellow:
-                    affected_traffic_light_text = 'YELLOW'
+                    affected_traffic_light_text = "YELLOW"
                 else:
-                    affected_traffic_light_text = 'RED'
+                    affected_traffic_light_text = "RED"
 
             affected_speed_limit_text = self.hero_actor.get_speed_limit()
 
             hero_mode_text = [
-                'Hero Mode:                 ON',
-                'Hero ID:              %7d' % self.hero_actor.id,
-                'Hero Vehicle:  %14s' % get_actor_display_name(self.hero_actor, truncate=14),
-                'Hero Speed:          %3d km/h' % hero_speed_text,
-                'Hero Affected by:',
-                '  Traffic Light: %12s' % affected_traffic_light_text,
-                '  Speed Limit:       %3d km/h' % affected_speed_limit_text
+                "Hero Mode:                 ON",
+                "Hero ID:              %7d" % self.hero_actor.id,
+                "Hero Vehicle:  %14s"
+                % get_actor_display_name(self.hero_actor, truncate=14),
+                "Hero Speed:          %3d km/h" % hero_speed_text,
+                "Hero Affected by:",
+                "  Traffic Light: %12s" % affected_traffic_light_text,
+                "  Speed Limit:       %3d km/h" % affected_speed_limit_text,
             ]
         else:
-            hero_mode_text = ['Hero Mode:                OFF']
+            hero_mode_text = ["Hero Mode:                OFF"]
 
         self.server_fps = self.server_clock.get_fps()
-        self.server_fps = 'inf' if self.server_fps == float('inf') else round(self.server_fps)
+        self.server_fps = (
+            "inf" if self.server_fps == float("inf") else round(self.server_fps)
+        )
         module_info_text = [
-            'Server:  % 16s FPS' % self.server_fps,
-            'Client:  % 16s FPS' % round(clock.get_fps()),
-            'Simulation Time: % 12s' % datetime.timedelta(seconds=int(self.simulation_time)),
-            'Map Name:          %10s' % self.town_map.name.split('/')[-1],
+            "Server:  % 16s FPS" % self.server_fps,
+            "Client:  % 16s FPS" % round(clock.get_fps()),
+            "Simulation Time: % 12s"
+            % datetime.timedelta(seconds=int(self.simulation_time)),
+            "Map Name:          %10s" % self.town_map.name.split("/")[-1],
         ]
 
         module_info_text = module_info_text
         module_hud = module_manager.get_module(MODULE_HUD)
         module_hud.add_info(self.name, module_info_text)
-        module_hud.add_info('HERO', hero_mode_text)
+        module_hud.add_info("HERO", hero_mode_text)
 
     @staticmethod
     def on_world_tick(weak_self, timestamp):
@@ -980,13 +1174,13 @@ class ModuleWorld(object):
 
         for actor_with_transform in self.actors_with_transforms:
             actor = actor_with_transform[0]
-            if 'vehicle' in actor.type_id:
+            if "vehicle" in actor.type_id:
                 vehicles.append(actor_with_transform)
-            elif 'traffic_light' in actor.type_id:
+            elif "traffic_light" in actor.type_id:
                 traffic_lights.append(actor_with_transform)
-            elif 'speed_limit' in actor.type_id:
+            elif "speed_limit" in actor.type_id:
                 speed_limits.append(actor_with_transform)
-            elif 'walker' in actor.type_id:
+            elif "walker" in actor.type_id:
                 walkers.append(actor_with_transform)
 
         info_text = []
@@ -994,15 +1188,15 @@ class ModuleWorld(object):
             location = self.hero_transform.location
             vehicle_list = [x[0] for x in vehicles if x[0].id != self.hero_actor.id]
 
-            def distance(v): return location.distance(v.get_location())
+            def distance(v):
+                return location.distance(v.get_location())
+
             for n, vehicle in enumerate(sorted(vehicle_list, key=distance)):
                 if n > 15:
                     break
                 vehicle_type = get_actor_display_name(vehicle, truncate=22)
-                info_text.append('% 5d %s' % (vehicle.id, vehicle_type))
-        module_manager.get_module(MODULE_HUD).add_info(
-            'NEARBY VEHICLES',
-            info_text)
+                info_text.append("% 5d %s" % (vehicle.id, vehicle_type))
+        module_manager.get_module(MODULE_HUD).add_info("NEARBY VEHICLES", info_text)
 
         return (vehicles, traffic_lights, speed_limits, walkers)
 
@@ -1026,21 +1220,25 @@ class ModuleWorld(object):
                 transformed_tv = tl_t.transform(tl.trigger_volume.location)
                 hero_location = self.hero_actor.get_location()
                 d = hero_location.distance(transformed_tv)
-                s = Util.length(tl.trigger_volume.extent) + Util.length(self.hero_actor.bounding_box.extent)
-                if (d <= s):
+                s = Util.length(tl.trigger_volume.extent) + Util.length(
+                    self.hero_actor.bounding_box.extent
+                )
+                if d <= s:
                     # Highlight traffic light
                     self.affected_traffic_light = tl
-                    srf = self.traffic_light_surfaces.surfaces['h']
+                    srf = self.traffic_light_surfaces.surfaces["h"]
                     surface.blit(srf, srf.get_rect(center=pos))
 
             srf = self.traffic_light_surfaces.surfaces[tl.state]
             surface.blit(srf, srf.get_rect(center=pos))
 
-    def _render_speed_limits(self, surface, list_sl, world_to_pixel, world_to_pixel_width):
+    def _render_speed_limits(
+        self, surface, list_sl, world_to_pixel, world_to_pixel_width
+    ):
 
         font_size = world_to_pixel_width(2)
         radius = world_to_pixel_width(2)
-        font = pygame.font.SysFont('Arial', font_size)
+        font = pygame.font.SysFont("Arial", font_size)
 
         for sl in list_sl:
 
@@ -1052,7 +1250,7 @@ class ModuleWorld(object):
             pygame.draw.circle(surface, COLOR_SCARLET_RED_1, (x, y), radius)
             pygame.draw.circle(surface, COLOR_ALUMINIUM_0, (x, y), white_circle_radius)
 
-            limit = sl.type_id.split('.')[2]
+            limit = sl.type_id.split(".")[2]
             font_surface = font.render(limit, True, COLOR_ALUMINIUM_5)
 
             if self.args.show_triggers:
@@ -1081,7 +1279,8 @@ class ModuleWorld(object):
                 carla.Location(x=-bb.x, y=-bb.y),
                 carla.Location(x=bb.x, y=-bb.y),
                 carla.Location(x=bb.x, y=bb.y),
-                carla.Location(x=-bb.x, y=bb.y)]
+                carla.Location(x=-bb.x, y=bb.y),
+            ]
 
             w[1].transform(corners)
             corners = [world_to_pixel(p) for p in corners]
@@ -1091,28 +1290,41 @@ class ModuleWorld(object):
 
         for v in list_v:
             color = COLOR_SKY_BLUE_0
-            if int(v[0].attributes['number_of_wheels']) == 2:
+            if int(v[0].attributes["number_of_wheels"]) == 2:
                 color = COLOR_CHOCOLATE_1
-            if v[0].attributes['role_name'] == 'hero':
+            if v[0].attributes["role_name"] == "hero":
                 color = COLOR_CHAMELEON_0
             # Compute bounding box points
             bb = v[0].bounding_box.extent
-            corners = [carla.Location(x=-bb.x, y=-bb.y),
-                       carla.Location(x=bb.x - 0.8, y=-bb.y),
-                       carla.Location(x=bb.x, y=0),
-                       carla.Location(x=bb.x - 0.8, y=bb.y),
-                       carla.Location(x=-bb.x, y=bb.y),
-                       carla.Location(x=-bb.x, y=-bb.y)
-                       ]
+            corners = [
+                carla.Location(x=-bb.x, y=-bb.y),
+                carla.Location(x=bb.x - 0.8, y=-bb.y),
+                carla.Location(x=bb.x, y=0),
+                carla.Location(x=bb.x - 0.8, y=bb.y),
+                carla.Location(x=-bb.x, y=bb.y),
+                carla.Location(x=-bb.x, y=-bb.y),
+            ]
             v[1].transform(corners)
             corners = [world_to_pixel(p) for p in corners]
-            pygame.draw.lines(surface, color, False, corners, int(math.ceil(4.0 * self.map_image.scale)))
+            pygame.draw.lines(
+                surface,
+                color,
+                False,
+                corners,
+                int(math.ceil(4.0 * self.map_image.scale)),
+            )
 
     def render_actors(self, surface, vehicles, traffic_lights, speed_limits, walkers):
         # Static actors
-        self._render_traffic_lights(surface, [tl[0] for tl in traffic_lights], self.map_image.world_to_pixel)
-        self._render_speed_limits(surface, [sl[0] for sl in speed_limits], self.map_image.world_to_pixel,
-                                  self.map_image.world_to_pixel_width)
+        self._render_traffic_lights(
+            surface, [tl[0] for tl in traffic_lights], self.map_image.world_to_pixel
+        )
+        self._render_speed_limits(
+            surface,
+            [sl[0] for sl in speed_limits],
+            self.map_image.world_to_pixel,
+            self.map_image.world_to_pixel_width,
+        )
 
         # Dynamic actors
         self._render_vehicles(surface, vehicles, self.map_image.world_to_pixel)
@@ -1132,11 +1344,15 @@ class ModuleWorld(object):
 
         # Offset will be the previously accumulated offset added with the
         # difference of mouse positions in the old and new scales
-        diff_between_scales = ((float(self.prev_scaled_size) * px) - (float(self.scaled_size) * px),
-                               (float(self.prev_scaled_size) * py) - (float(self.scaled_size) * py))
+        diff_between_scales = (
+            (float(self.prev_scaled_size) * px) - (float(self.scaled_size) * px),
+            (float(self.prev_scaled_size) * py) - (float(self.scaled_size) * py),
+        )
 
-        self.scale_offset = (self.scale_offset[0] + diff_between_scales[0],
-                             self.scale_offset[1] + diff_between_scales[1])
+        self.scale_offset = (
+            self.scale_offset[0] + diff_between_scales[0],
+            self.scale_offset[1] + diff_between_scales[1],
+        )
 
         # Update previous scale
         self.prev_scaled_size = self.scaled_size
@@ -1159,47 +1375,55 @@ class ModuleWorld(object):
 
         self.actors_surface.fill(COLOR_BLACK)
         self.render_actors(
-            self.actors_surface,
-            vehicles,
-            traffic_lights,
-            speed_limits,
-            walkers)
+            self.actors_surface, vehicles, traffic_lights, speed_limits, walkers
+        )
 
         # Render Ids
-        self.module_hud.render_vehicles_ids(self.vehicle_id_surface, vehicles,
-                                            self.map_image.world_to_pixel, self.hero_actor, self.hero_transform)
+        self.module_hud.render_vehicles_ids(
+            self.vehicle_id_surface,
+            vehicles,
+            self.map_image.world_to_pixel,
+            self.hero_actor,
+            self.hero_transform,
+        )
 
         # Blit surfaces
-        surfaces = ((self.map_image.surface, (0, 0)),
-                    (self.actors_surface, (0, 0)),
-                    (self.vehicle_id_surface, (0, 0)),
-                    )
+        surfaces = (
+            (self.map_image.surface, (0, 0)),
+            (self.actors_surface, (0, 0)),
+            (self.vehicle_id_surface, (0, 0)),
+        )
 
-        angle = 0.0 if self.hero_actor is None else self.hero_transform.rotation.yaw + 90.0
+        angle = (
+            0.0 if self.hero_actor is None else self.hero_transform.rotation.yaw + 90.0
+        )
         self.traffic_light_surfaces.rotozoom(-angle, self.map_image.scale)
 
         center_offset = (0, 0)
         if self.hero_actor is not None:
 
-            hero_location_screen = self.map_image.world_to_pixel(self.hero_transform.location)
+            hero_location_screen = self.map_image.world_to_pixel(
+                self.hero_transform.location
+            )
             hero_front = self.hero_transform.get_forward_vector()
             translation_offset = (
-                hero_location_screen[0] -
-                self.hero_surface.get_width() /
-                2 +
-                hero_front.x *
-                PIXELS_AHEAD_VEHICLE,
-                (hero_location_screen[1] -
-                 self.hero_surface.get_height() /
-                 2 +
-                 hero_front.y *
-                 PIXELS_AHEAD_VEHICLE))
+                hero_location_screen[0]
+                - self.hero_surface.get_width() / 2
+                + hero_front.x * PIXELS_AHEAD_VEHICLE,
+                (
+                    hero_location_screen[1]
+                    - self.hero_surface.get_height() / 2
+                    + hero_front.y * PIXELS_AHEAD_VEHICLE
+                ),
+            )
 
             # Apply clipping rect
-            clipping_rect = pygame.Rect(translation_offset[0],
-                                        translation_offset[1],
-                                        self.hero_surface.get_width(),
-                                        self.hero_surface.get_height())
+            clipping_rect = pygame.Rect(
+                translation_offset[0],
+                translation_offset[1],
+                self.hero_surface.get_width(),
+                self.hero_surface.get_height(),
+            )
             self.clip_surfaces(clipping_rect)
 
             Util.blits(self.result_surface, surfaces)
@@ -1207,10 +1431,13 @@ class ModuleWorld(object):
             self.border_round_surface.set_clip(clipping_rect)
 
             self.hero_surface.fill(COLOR_ALUMINIUM_4)
-            self.hero_surface.blit(self.result_surface, (-translation_offset[0],
-                                                         -translation_offset[1]))
+            self.hero_surface.blit(
+                self.result_surface, (-translation_offset[0], -translation_offset[1])
+            )
 
-            rotated_result_surface = pygame.transform.rotozoom(self.hero_surface, angle, 0.9).convert()
+            rotated_result_surface = pygame.transform.rotozoom(
+                self.hero_surface, angle, 0.9
+            ).convert()
 
             center = (display.get_width() / 2, display.get_height() / 2)
             rotation_pivot = rotated_result_surface.get_rect(center=center)
@@ -1219,22 +1446,35 @@ class ModuleWorld(object):
             display.blit(self.border_round_surface, (0, 0))
         else:
             # Translation offset
-            translation_offset = (self.module_input.mouse_offset[0] * scale_factor + self.scale_offset[0],
-                                  self.module_input.mouse_offset[1] * scale_factor + self.scale_offset[1])
-            center_offset = (abs(display.get_width() - self.surface_size) / 2 * scale_factor, 0)
+            translation_offset = (
+                self.module_input.mouse_offset[0] * scale_factor + self.scale_offset[0],
+                self.module_input.mouse_offset[1] * scale_factor + self.scale_offset[1],
+            )
+            center_offset = (
+                abs(display.get_width() - self.surface_size) / 2 * scale_factor,
+                0,
+            )
 
             # Apply clipping rect
-            clipping_rect = pygame.Rect(-translation_offset[0] - center_offset[0], -translation_offset[1],
-                                        self.module_hud.dim[0], self.module_hud.dim[1])
+            clipping_rect = pygame.Rect(
+                -translation_offset[0] - center_offset[0],
+                -translation_offset[1],
+                self.module_hud.dim[0],
+                self.module_hud.dim[1],
+            )
             self.clip_surfaces(clipping_rect)
             Util.blits(self.result_surface, surfaces)
 
-            display.blit(self.result_surface, (translation_offset[0] + center_offset[0],
-                                               translation_offset[1]))
+            display.blit(
+                self.result_surface,
+                (translation_offset[0] + center_offset[0], translation_offset[1]),
+            )
 
     def destroy(self):
         if self.spawned_hero is not None:
             self.spawned_hero.destroy()
+
+
 # ==============================================================================
 # -- Input -----------------------------------------------------------
 # ==============================================================================
@@ -1269,7 +1509,9 @@ class ModuleInput(object):
             elif event.type == pygame.KEYUP:
                 if self._is_quit_shortcut(event.key):
                     exit_game()
-                elif event.key == K_h or (event.key == K_SLASH and pygame.key.get_mods() & KMOD_SHIFT):
+                elif event.key == K_h or (
+                    event.key == K_SLASH and pygame.key.get_mods() & KMOD_SHIFT
+                ):
                     module_hud = module_manager.get_module(MODULE_HUD)
                     module_hud.help.toggle()
                 elif event.key == K_TAB:
@@ -1279,14 +1521,14 @@ class ModuleInput(object):
                         module_world.select_hero_actor()
                         self.wheel_offset = HERO_DEFAULT_SCALE
                         self.control = carla.VehicleControl()
-                        module_hud.notification('Hero Mode')
+                        module_hud.notification("Hero Mode")
                     else:
                         self.wheel_offset = MAP_DEFAULT_SCALE
                         self.mouse_offset = [0, 0]
                         self.mouse_pos = [0, 0]
                         module_world.scale_offset = [0, 0]
                         module_world.hero_actor = None
-                        module_hud.notification('Map Mode')
+                        module_hud.notification("Map Mode")
                 elif event.key == K_F1:
                     module_hud = module_manager.get_module(MODULE_HUD)
                     module_hud.show_info = not module_hud.show_info
@@ -1297,12 +1539,20 @@ class ModuleInput(object):
                     if event.key == K_q:
                         self.control.gear = 1 if self.control.reverse else -1
                     elif event.key == K_m:
-                        self.control.manual_gear_shift = not self.control.manual_gear_shift
+                        self.control.manual_gear_shift = (
+                            not self.control.manual_gear_shift
+                        )
                         world = module_manager.get_module(MODULE_WORLD)
                         self.control.gear = world.hero_actor.get_control().gear
                         module_hud = module_manager.get_module(MODULE_HUD)
-                        module_hud.notification('%s Transmission' % (
-                            'Manual' if self.control.manual_gear_shift else 'Automatic'))
+                        module_hud.notification(
+                            "%s Transmission"
+                            % (
+                                "Manual"
+                                if self.control.manual_gear_shift
+                                else "Automatic"
+                            )
+                        )
                     elif self.control.manual_gear_shift and event.key == K_COMMA:
                         self.control.gear = max(-1, self.control.gear - 1)
                     elif self.control.manual_gear_shift and event.key == K_PERIOD:
@@ -1313,7 +1563,10 @@ class ModuleInput(object):
                             self._autopilot_enabled = not self._autopilot_enabled
                             world.hero_actor.set_autopilot(self._autopilot_enabled)
                             module_hud = module_manager.get_module(MODULE_HUD)
-                            module_hud.notification('Autopilot %s' % ('On' if self._autopilot_enabled else 'Off'))
+                            module_hud.notification(
+                                "Autopilot %s"
+                                % ("On" if self._autopilot_enabled else "Off")
+                            )
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 4:
                     self.wheel_offset += self.wheel_amount
@@ -1354,7 +1607,7 @@ class ModuleInput(object):
                 self._parse_keys(clock.get_time())
                 self.control.reverse = self.control.gear < 0
             world = module_manager.get_module(MODULE_WORLD)
-            if (world.hero_actor is not None):
+            if world.hero_actor is not None:
                 world.hero_actor.apply_control(self.control)
 
     @staticmethod
@@ -1378,13 +1631,16 @@ def game_loop(args):
         # Init Pygame
         pygame.init()
         display = pygame.display.set_mode(
-            (args.width, args.height),
-            pygame.HWSURFACE | pygame.DOUBLEBUF)
+            (args.width, args.height), pygame.HWSURFACE | pygame.DOUBLEBUF
+        )
         pygame.display.set_caption(args.description)
 
         font = pygame.font.Font(pygame.font.get_default_font(), 20)
-        text_surface = font.render('Rendering map...', True, COLOR_WHITE)
-        display.blit(text_surface, text_surface.get_rect(center=(args.width / 2, args.height / 2)))
+        text_surface = font.render("Rendering map...", True, COLOR_WHITE)
+        display.blit(
+            text_surface,
+            text_surface.get_rect(center=(args.width / 2, args.height / 2)),
+        )
         pygame.display.flip()
 
         # Init modules
@@ -1409,16 +1665,18 @@ def game_loop(args):
             pygame.display.flip()
 
     except KeyboardInterrupt:
-        print('\nCancelled by user. Bye!')
+        print("\nCancelled by user. Bye!")
 
     finally:
         if world_module is not None:
             world_module.destroy()
 
+
 def exit_game():
     module_manager.clear_modules()
     pygame.quit()
     sys.exit()
+
 
 # ==============================================================================
 # -- Main --------------------------------------------------------------------
@@ -1428,67 +1686,77 @@ def exit_game():
 def main():
     # Parse arguments
     argparser = argparse.ArgumentParser(
-        description='CARLA No Rendering Mode Visualizer')
+        description="CARLA No Rendering Mode Visualizer"
+    )
     argparser.add_argument(
-        '-v', '--verbose',
-        action='store_true',
-        dest='debug',
-        help='print debug information')
+        "-v",
+        "--verbose",
+        action="store_true",
+        dest="debug",
+        help="print debug information",
+    )
     argparser.add_argument(
-        '--host',
-        metavar='H',
-        default='127.0.0.1',
-        help='IP of the host server (default: 127.0.0.1)')
+        "--host",
+        metavar="H",
+        default="127.0.0.1",
+        help="IP of the host server (default: 127.0.0.1)",
+    )
     argparser.add_argument(
-        '-p', '--port',
-        metavar='P',
+        "-p",
+        "--port",
+        metavar="P",
         default=2000,
         type=int,
-        help='TCP port to listen to (default: 2000)')
+        help="TCP port to listen to (default: 2000)",
+    )
     argparser.add_argument(
-        '--res',
-        metavar='WIDTHxHEIGHT',
-        default='1280x720',
-        help='window resolution (default: 1280x720)')
+        "--res",
+        metavar="WIDTHxHEIGHT",
+        default="1280x720",
+        help="window resolution (default: 1280x720)",
+    )
     argparser.add_argument(
-        '--filter',
-        metavar='PATTERN',
-        default='vehicle.*',
-        help='actor filter (default: "vehicle.*")')
+        "--filter",
+        metavar="PATTERN",
+        default="vehicle.*",
+        help='actor filter (default: "vehicle.*")',
+    )
     argparser.add_argument(
-        '--map',
-        metavar='TOWN',
+        "--map",
+        metavar="TOWN",
         default=None,
-        help='start a new episode at the given TOWN')
+        help="start a new episode at the given TOWN",
+    )
     argparser.add_argument(
-        '--no-rendering',
-        action='store_true',
+        "--no-rendering",
+        action="store_true",
         default=True,
-        help='switch off server rendering')
+        help="switch off server rendering",
+    )
     argparser.add_argument(
-        '--show-triggers',
-        action='store_true',
-        help='show trigger boxes of traffic signs')
+        "--show-triggers",
+        action="store_true",
+        help="show trigger boxes of traffic signs",
+    )
     argparser.add_argument(
-        '--show-connections',
-        action='store_true',
-        help='show waypoint connections')
+        "--show-connections", action="store_true", help="show waypoint connections"
+    )
     argparser.add_argument(
-        '--show-spawn-points',
-        action='store_true',
-        help='show recommended spawn points')
+        "--show-spawn-points", action="store_true", help="show recommended spawn points"
+    )
 
     args = argparser.parse_args()
     args.description = argparser.description
-    args.width, args.height = [int(x) for x in args.res.split('x')]
+    args.width, args.height = [int(x) for x in args.res.split("x")]
 
     log_level = logging.DEBUG if args.debug else logging.INFO
-    logging.basicConfig(format='%(levelname)s: %(message)s', level=log_level)
+    logging.basicConfig(format="%(levelname)s: %(message)s", level=log_level)
 
-    logging.info('listening to server %s:%s', args.host, args.port)
+    logging.info("listening to server %s:%s", args.host, args.port)
     print(__doc__)
 
     game_loop(args)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

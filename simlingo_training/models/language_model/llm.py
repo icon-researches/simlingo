@@ -1,6 +1,10 @@
-
-
-from transformers import LlamaModel, LlamaConfig, AutoTokenizer, AutoModelForCausalLM, AutoConfig
+from transformers import (
+    LlamaModel,
+    LlamaConfig,
+    AutoTokenizer,
+    AutoModelForCausalLM,
+    AutoConfig,
+)
 from transformers import GPTNeoXForCausalLM
 from transformers import LlavaNextProcessor, LlavaNextForConditionalGeneration
 from transformers import AutoModel, AutoTokenizer
@@ -12,24 +16,79 @@ import torch
 from torch import Tensor, nn
 
 CONFIGS: Dict[str, Dict[str, Any]] = {
-    "debug": dict(num_hidden_layers=2, num_attention_heads=2, hidden_size=32, intermediate_size=64),
-    "legacy-tiny": dict(num_hidden_layers=8, num_attention_heads=16, hidden_size=2048, intermediate_size=4096),
+    "debug": dict(
+        num_hidden_layers=2, num_attention_heads=2, hidden_size=32, intermediate_size=64
+    ),
+    "legacy-tiny": dict(
+        num_hidden_layers=8,
+        num_attention_heads=16,
+        hidden_size=2048,
+        intermediate_size=4096,
+    ),
     # -- auto-regressive driving models --
-    "tiny": dict(num_hidden_layers=12, num_attention_heads=8, hidden_size=512, intermediate_size=2048),  # 50M
-    "x-small": dict(num_hidden_layers=14, num_attention_heads=8, hidden_size=1024, intermediate_size=4096),  # 235M
-    "small": dict(num_hidden_layers=22, num_attention_heads=8, hidden_size=1024, intermediate_size=4096),  # 369M
-    "medium": dict(num_hidden_layers=22, num_attention_heads=12, hidden_size=1536, intermediate_size=4096),  # 623M
-    "large": dict(num_hidden_layers=22, num_attention_heads=16, hidden_size=2048, intermediate_size=5632),  # 1.1B
+    "tiny": dict(
+        num_hidden_layers=12,
+        num_attention_heads=8,
+        hidden_size=512,
+        intermediate_size=2048,
+    ),  # 50M
+    "x-small": dict(
+        num_hidden_layers=14,
+        num_attention_heads=8,
+        hidden_size=1024,
+        intermediate_size=4096,
+    ),  # 235M
+    "small": dict(
+        num_hidden_layers=22,
+        num_attention_heads=8,
+        hidden_size=1024,
+        intermediate_size=4096,
+    ),  # 369M
+    "medium": dict(
+        num_hidden_layers=22,
+        num_attention_heads=12,
+        hidden_size=1536,
+        intermediate_size=4096,
+    ),  # 623M
+    "large": dict(
+        num_hidden_layers=22,
+        num_attention_heads=16,
+        hidden_size=2048,
+        intermediate_size=5632,
+    ),  # 1.1B
     # -- gaia world models --
-    "gaia-large": dict(num_hidden_layers=22, num_attention_heads=16, hidden_size=1536, intermediate_size=4096),  # 623M
+    "gaia-large": dict(
+        num_hidden_layers=22,
+        num_attention_heads=16,
+        hidden_size=1536,
+        intermediate_size=4096,
+    ),  # 623M
     # -- language models --
-    "7B": dict(num_hidden_layers=32, num_attention_heads=32, hidden_size=4096, intermediate_size=11008),  # 6476M
-    "13B": dict(num_hidden_layers=40, num_attention_heads=40, hidden_size=5120, intermediate_size=11008),
+    "7B": dict(
+        num_hidden_layers=32,
+        num_attention_heads=32,
+        hidden_size=4096,
+        intermediate_size=11008,
+    ),  # 6476M
+    "13B": dict(
+        num_hidden_layers=40,
+        num_attention_heads=40,
+        hidden_size=5120,
+        intermediate_size=11008,
+    ),
     "70B": dict(
-        num_hidden_layers=80, num_attention_heads=64, hidden_size=8192, intermediate_size=28672, num_key_value_heads=8
+        num_hidden_layers=80,
+        num_attention_heads=64,
+        hidden_size=8192,
+        intermediate_size=28672,
+        num_key_value_heads=8,
     ),
     "tiny-llama-1.1b": dict(  # 969M
-        num_hidden_layers=22, num_attention_heads=32, hidden_size=2048, intermediate_size=5632, num_key_value_heads=4
+        num_hidden_layers=22,
+        num_attention_heads=32,
+        hidden_size=2048,
+        intermediate_size=5632,
+        num_key_value_heads=4,
     ),
     "phi": dict(
         num_hidden_layers=24,
@@ -47,44 +106,60 @@ CONFIGS: Dict[str, Dict[str, Any]] = {
 
 
 class LLM(nn.Module):
-    def __init__(self,
-                **cfg,
-            ):
+    def __init__(
+        self,
+        **cfg,
+    ):
         super().__init__()
         for key, value in cfg.items():
             setattr(self, key, value)
 
-        if 'pythia' in self.variant:
+        if "pythia" in self.variant:
             raise ValueError(f"Carefull: Variant {self.variant} not tested.")
-            self.variant = f'EleutherAI/{self.variant}'
-            self.model = GPTNeoXForCausalLM.from_pretrained(self.variant, trust_remote_code=True)
-            self.tokenizer = AutoTokenizer.from_pretrained(self.variant, torch_dtype="auto",  trust_remote_code=True)
+            self.variant = f"EleutherAI/{self.variant}"
+            self.model = GPTNeoXForCausalLM.from_pretrained(
+                self.variant, trust_remote_code=True
+            )
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                self.variant, torch_dtype="auto", trust_remote_code=True
+            )
             self.model.embed_tokens = self.model.base_model.embed_in
-        elif 'paligemma' in self.variant:
+        elif "paligemma" in self.variant:
             raise ValueError(f"Carefull: Variant {self.variant} not tested.")
-            self.variant = f'google/{self.variant}'
+            self.variant = f"google/{self.variant}"
             from transformers import AutoProcessor, PaliGemmaForConditionalGeneration
+
             self.model = PaliGemmaForConditionalGeneration.from_pretrained(
                 self.variant,
                 torch_dtype="auto",
                 revision="float16",
             ).language_model
             self.model.embed_tokens = self.model.base_model.embed_tokens
-            self.tokenizer = AutoProcessor.from_pretrained(self.variant, torch_dtype="auto").tokenizer
-        elif 'TinyLlama' in self.variant:
+            self.tokenizer = AutoProcessor.from_pretrained(
+                self.variant, torch_dtype="auto"
+            ).tokenizer
+        elif "TinyLlama" in self.variant:
             raise ValueError(f"Carefull: Variant {self.variant} not tested.")
-            print('Loading pretrained model')
-            self.model = AutoModelForCausalLM.from_pretrained(self.variant, trust_remote_code=True)
-            self.tokenizer = AutoTokenizer.from_pretrained(self.variant, torch_dtype="auto",  trust_remote_code=True)
+            print("Loading pretrained model")
+            self.model = AutoModelForCausalLM.from_pretrained(
+                self.variant, trust_remote_code=True
+            )
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                self.variant, torch_dtype="auto", trust_remote_code=True
+            )
             self.model.embed_tokens = self.model.base_model.embed_tokens
-        elif 'llava-v1.6' in self.variant:
+        elif "llava-v1.6" in self.variant:
             raise ValueError(f"Carefull: Variant {self.variant} not tested.")
-            print('Loading pretrained model')
-            self.model = LlavaNextForConditionalGeneration.from_pretrained(self.variant, trust_remote_code=True)
-            self.tokenizer = LlavaNextProcessor.from_pretrained(self.variant, torch_dtype="auto",  trust_remote_code=True).tokenizer
+            print("Loading pretrained model")
+            self.model = LlavaNextForConditionalGeneration.from_pretrained(
+                self.variant, trust_remote_code=True
+            )
+            self.tokenizer = LlavaNextProcessor.from_pretrained(
+                self.variant, torch_dtype="auto", trust_remote_code=True
+            ).tokenizer
             self.model = self.model.language_model
             self.model.embed_tokens = self.model.base_model.embed_tokens
-        elif 'internvl' in self.variant.lower():
+        elif "internvl" in self.variant.lower():
             self.model = AutoModel.from_pretrained(self.variant, trust_remote_code=True)
             self.model = self.model.language_model
             try:
@@ -106,10 +181,10 @@ class LLM(nn.Module):
         if self.lora:
             from peft import get_peft_model
             from peft import LoraConfig
-            
-            print('Using PEFT model')
+
+            print("Using PEFT model")
             peft_config = LoraConfig(
-                inference_mode=False, 
+                inference_mode=False,
                 r=self.lora_r,
                 lora_alpha=self.lora_alpha,
                 lora_dropout=self.lora_dropout,
@@ -122,8 +197,8 @@ class LLM(nn.Module):
         self.hidden_size = self.model.config.hidden_size
         self.max_position_embeddings = self.model.config.max_position_embeddings
 
-
-    def forward(self,
+    def forward(
+        self,
         embeddings: Tensor,
         attention_mask: Tensor = None,
         return_dict: bool = True,
@@ -135,8 +210,8 @@ class LLM(nn.Module):
             attention_mask=attention_mask,
             output_hidden_states=True,
             position_ids=position_ids,
-            return_dict=return_dict
-        )#.last_hidden_state
+            return_dict=return_dict,
+        )  # .last_hidden_state
         features = outputs.hidden_states[-1]
         logits = outputs[0]
 
@@ -188,10 +263,10 @@ class LLM(nn.Module):
         input_embed_matrix: Optional[Tensor] = None,
         logit_matrix: Optional[Tensor] = None,
         restrict_tokens: Optional[Tuple[int, int]] = None,
-        attention_mask = None,
-        position_ids = None,
+        attention_mask=None,
+        position_ids=None,
     ) -> Tuple[Tensor, int]:
-        
+
         if input_embed_matrix is None:
             if self.embed_tokens is None:
                 raise ValueError(
@@ -208,15 +283,21 @@ class LLM(nn.Module):
             logit_matrix = self.lm_head.weight
         # We generate tokens up to the eos token id if provided. If not provided, we generate until the end.
         # If no eos token id is provided, use -1 instead, so we will never stop generating until 'new_token'.
-        sampled_tokens = torch.empty((input_embeds.size(0), max_new_tokens), device=input_embeds.device, dtype=torch.long)
+        sampled_tokens = torch.empty(
+            (input_embeds.size(0), max_new_tokens),
+            device=input_embeds.device,
+            dtype=torch.long,
+        )
         if eos_token_id is not None:
             sampled_tokens.fill_(eos_token_id)
 
         # we start with all sequences left to complete
-        incomplete_seq_mask = torch.ones(input_embeds.size(0), dtype=torch.bool, device=input_embeds.device)
+        incomplete_seq_mask = torch.ones(
+            input_embeds.size(0), dtype=torch.bool, device=input_embeds.device
+        )
         for i in range(max_new_tokens):
             features, logits = self.forward(
-                embeddings=input_embeds, 
+                embeddings=input_embeds,
                 attention_mask=attention_mask,
                 position_ids=position_ids,
             )
@@ -225,14 +306,24 @@ class LLM(nn.Module):
 
             # sample the next token
             logits = F.linear(last_hidden_state, logit_matrix)
-            
+
             next_token = self.sample_categorical(
-                logits, temperature=temperature, top_k=top_k, top_p=top_p, restrict_tokens=restrict_tokens
+                logits,
+                temperature=temperature,
+                top_k=top_k,
+                top_p=top_p,
+                restrict_tokens=restrict_tokens,
             )
             x = F.embedding(next_token.unsqueeze(1), input_embed_matrix)
 
             input_embeds = torch.cat([input_embeds, x], dim=1)
-            attention_mask = torch.cat([attention_mask, torch.ones((input_embeds.size(0), 1), device=input_embeds.device)], dim=1)
+            attention_mask = torch.cat(
+                [
+                    attention_mask,
+                    torch.ones((input_embeds.size(0), 1), device=input_embeds.device),
+                ],
+                dim=1,
+            )
 
             # only update sequences where we haven't predicted the eos token before
             sampled_tokens[incomplete_seq_mask, i] = next_token[incomplete_seq_mask]

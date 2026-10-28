@@ -1,4 +1,5 @@
 from scipy.signal import savgol_filter
+
 # import numpy.typing as npt
 import numpy as np
 import json
@@ -25,19 +26,23 @@ max_abs_lon_jerk = 4.13  # [m/s^3]
 # (6) ego_yaw_rate_metric
 max_abs_yaw_rate = 0.95  # [rad/s]
 
-'''
+"""
 window size = 8
-'''
+"""
+
 
 def chunk_arrays(arrays, m):
     chunks = [chunk_array(arr, m) for arr in arrays]
     return chunks
 
+
 def chunk_array(arr, m):
-    chunks = [arr[i * m:(i + 1) * m] for i in range((len(arr) + m - 1) // m)]
+    chunks = [arr[i * m : (i + 1) * m] for i in range((len(arr) + m - 1) // m)]
     return chunks
 
-def seg_compute_comfort_metric(acceleration,
+
+def seg_compute_comfort_metric(
+    acceleration,
     angular_velocity,
     forward_vector,
     right_vector,
@@ -47,20 +52,48 @@ def seg_compute_comfort_metric(acceleration,
     poly_order: int = 2,
     deriv_order: int = 1,
     time_interval: float = 0.1,
-    per_step: int = 20):
+    per_step: int = 20,
+):
     episode_len = len(angular_velocity)
     if episode_len <= per_step:
-        res = compute_comfort_metric( acceleration, angular_velocity, forward_vector, right_vector, location, rotation)
-        return 1. if res else 0.
-    seg_data = chunk_arrays([acceleration, angular_velocity, forward_vector, right_vector, location, rotation], per_step)
-    
+        res = compute_comfort_metric(
+            acceleration,
+            angular_velocity,
+            forward_vector,
+            right_vector,
+            location,
+            rotation,
+        )
+        return 1.0 if res else 0.0
+    seg_data = chunk_arrays(
+        [
+            acceleration,
+            angular_velocity,
+            forward_vector,
+            right_vector,
+            location,
+            rotation,
+        ],
+        per_step,
+    )
+
     res = []
     for index in range(len(seg_data[0])):
         if len(seg_data[0][index]) < per_step:
             continue
-        res.append(compute_comfort_metric(seg_data[0][index], seg_data[1][index], seg_data[2][index], seg_data[3][index], seg_data[4][index], seg_data[5][index]))
+        res.append(
+            compute_comfort_metric(
+                seg_data[0][index],
+                seg_data[1][index],
+                seg_data[2][index],
+                seg_data[3][index],
+                seg_data[4][index],
+                seg_data[5][index],
+            )
+        )
     return res.count(True) / len(res)
     pass
+
 
 def compute_comfort_metric(
     acceleration,
@@ -72,58 +105,58 @@ def compute_comfort_metric(
     window_size: int = 7,
     poly_order: int = 2,
     deriv_order: int = 1,
-    time_interval: float = 0.1
+    time_interval: float = 0.1,
 ):
     window_size = min(window_size, len(acceleration))
     if not (poly_order < window_size):
         raise ValueError(f"{poly_order} < {window_size} does not hold!")
-    
+
     _2d_acceleration = np.array([[v[0], v[1]] for v in acceleration])
     _2d_forward_vector = np.array([[vec[0], vec[1]] for vec in forward_vector])
     _2d_right_vector = np.array([[vec[0], vec[1]] for vec in right_vector])
     _z_angular_rate = np.array([a[2] for a in angular_velocity])
     _z_yaw_rate = _phase_unwrap(_z_angular_rate)
-    
-    lon_acc = np.einsum('ij,ij->i', _2d_acceleration, _2d_forward_vector)
-    lat_acc = np.einsum('ij,ij->i', _2d_acceleration, _2d_right_vector)
+
+    lon_acc = np.einsum("ij,ij->i", _2d_acceleration, _2d_forward_vector)
+    lat_acc = np.einsum("ij,ij->i", _2d_acceleration, _2d_right_vector)
     magnitude_acc = np.hypot(_2d_acceleration[:, 0], _2d_acceleration[:, 1])
-    
+
     _z_yaw_acc = savgol_filter(
         _z_yaw_rate,
         polyorder=poly_order,
         window_length=window_size,
         axis=-1,
     )
-    
+
     _z_yaw_rate = savgol_filter(
         _z_yaw_rate,
         polyorder=poly_order,
         window_length=window_size,
         axis=-1,
     )
-    
+
     lon_acc = savgol_filter(
         lon_acc,
         polyorder=poly_order,
         window_length=window_size,
         axis=-1,
     )
-    
+
     lat_acc = savgol_filter(
         lat_acc,
         polyorder=poly_order,
         window_length=window_size,
         axis=-1,
     )
-    
+
     magnitude_acc = savgol_filter(
         magnitude_acc,
         polyorder=poly_order,
         window_length=window_size,
         axis=-1,
     )
-    
-    dx = time_interval 
+
+    dx = time_interval
     magnitude_jerk = savgol_filter(
         magnitude_acc,
         polyorder=poly_order,
@@ -132,7 +165,7 @@ def compute_comfort_metric(
         delta=dx,
         axis=-1,
     )
-    
+
     lon_jerk = savgol_filter(
         lon_acc,
         polyorder=poly_order,
@@ -141,30 +174,31 @@ def compute_comfort_metric(
         delta=dx,
         axis=-1,
     )
-    
-    res = np.array([
-        _within_bound(
-        lon_acc, min_bound=min_lon_accel, max_bound=max_lon_accel
-    ),
-        _within_bound(
-        lat_acc, min_bound=-max_abs_lat_accel, max_bound=max_abs_lat_accel
-    ),
-        _within_bound(
-        magnitude_jerk, min_bound=-max_abs_mag_jerk, max_bound=max_abs_mag_jerk
-    ),
-        _within_bound(
-        lon_jerk, min_bound=-max_abs_lon_jerk, max_bound=max_abs_lon_jerk
-    ),
-        _within_bound(
-        _z_yaw_acc, min_bound=-max_abs_yaw_accel, max_bound=max_abs_yaw_accel
-    ),
-        _within_bound(
-        _z_yaw_rate, min_bound=-max_abs_yaw_rate, max_bound=max_abs_yaw_rate
+
+    res = np.array(
+        [
+            _within_bound(lon_acc, min_bound=min_lon_accel, max_bound=max_lon_accel),
+            _within_bound(
+                lat_acc, min_bound=-max_abs_lat_accel, max_bound=max_abs_lat_accel
+            ),
+            _within_bound(
+                magnitude_jerk, min_bound=-max_abs_mag_jerk, max_bound=max_abs_mag_jerk
+            ),
+            _within_bound(
+                lon_jerk, min_bound=-max_abs_lon_jerk, max_bound=max_abs_lon_jerk
+            ),
+            _within_bound(
+                _z_yaw_acc, min_bound=-max_abs_yaw_accel, max_bound=max_abs_yaw_accel
+            ),
+            _within_bound(
+                _z_yaw_rate, min_bound=-max_abs_yaw_rate, max_bound=max_abs_yaw_rate
+            ),
+        ]
     )
-    ])
     res = bool(np.all(res))
     return res
-    
+
+
 def _approximate_derivatives(
     y,
     x,
@@ -193,10 +227,11 @@ def _approximate_derivatives(
     )
     return derivative
 
+
 def _within_bound(
     metric,
-    min_bound = None,
-    max_bound = None,
+    min_bound=None,
+    max_bound=None,
 ):
     """
     Determines wether values in batch-dim are within bounds.
@@ -210,6 +245,7 @@ def _within_bound(
     metric_values = np.array(metric)
     metric_within_bound = (metric_values > min_bound) & (metric_values < max_bound)
     return np.all(metric_within_bound, axis=-1)
+
 
 def _phase_unwrap(headings):
     """
@@ -235,12 +271,12 @@ def _phase_unwrap(headings):
 
 
 def read_from_json(filepath, metric_dir=None):
-    with open(filepath, 'r') as f:
+    with open(filepath, "r") as f:
         data = json.load(f)
     all_data = []
     driving_efficiency = []
     for record in data["_checkpoint"]["records"]:
-        filepath = os.path.join(metric_dir, record["save_name"], 'metric_info.json')
+        filepath = os.path.join(metric_dir, record["save_name"], "metric_info.json")
         temp_dict = {}
         temp_dict["acceleration"] = []
         temp_dict["angular_velocity"] = []
@@ -248,7 +284,7 @@ def read_from_json(filepath, metric_dir=None):
         temp_dict["right_vector"] = []
         temp_dict["location"] = []
         temp_dict["rotation"] = []
-        with open(filepath, 'r') as file:
+        with open(filepath, "r") as file:
             json_data = json.load(file)
             for k, v in json_data.items():
                 temp_dict["acceleration"].append(v["acceleration"])
@@ -266,21 +302,28 @@ def read_from_json(filepath, metric_dir=None):
             driving_e = []
             for min_speed_infrac in record["infractions"]["min_speed_infractions"]:
                 number = re.search(r"\b\d+\.?\d*%", min_speed_infrac)
-                if float(number.group().rstrip('%')) > 1000:
+                if float(number.group().rstrip("%")) > 1000:
                     continue
-                driving_e.append(float(number.group().rstrip('%')))
+                driving_e.append(float(number.group().rstrip("%")))
             driving_e = sum(driving_e) / len(driving_e)
             driving_efficiency.append(driving_e)
     return all_data, driving_efficiency
 
-if __name__=='__main__':
+
+if __name__ == "__main__":
     argparser = argparse.ArgumentParser(description=__doc__)
-    argparser.add_argument('-f', '--file', default="uniad_b2d_traj/merged.json", help='route file')
-    argparser.add_argument('-m', '--metric_dir', default="eval_bench2drive220_uniad_traj/")
+    argparser.add_argument(
+        "-f", "--file", default="uniad_b2d_traj/merged.json", help="route file"
+    )
+    argparser.add_argument(
+        "-m", "--metric_dir", default="eval_bench2drive220_uniad_traj/"
+    )
     args = argparser.parse_args()
     all_data, driving_efficiency_list = read_from_json(args.file, args.metric_dir)
     comfort_res = []
     for record in all_data:
         comfort_res.append(seg_compute_comfort_metric(**record))
-    print(f'Driving Efficiency={sum(driving_efficiency_list) / len(driving_efficiency_list)}')
-    print(f'Driving Smoothness={sum(comfort_res)/len(comfort_res)}')
+    print(
+        f"Driving Efficiency={sum(driving_efficiency_list) / len(driving_efficiency_list)}"
+    )
+    print(f"Driving Smoothness={sum(comfort_res)/len(comfort_res)}")

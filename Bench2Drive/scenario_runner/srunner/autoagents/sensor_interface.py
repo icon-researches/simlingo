@@ -24,14 +24,12 @@ import carla
 
 
 class SensorReceivedNoData(Exception):
-
     """
     Exceptions thrown when the sensors used by the agent take too long to receive data
     """
 
 
 class CallBack(object):
-
     """
     Class the sensors listen to in order to receive their data each frame
     """
@@ -60,7 +58,7 @@ class CallBack(object):
         elif isinstance(data, carla.IMUMeasurement):
             self._parse_imu_cb(data, self._tag)
         else:
-            logging.error('No callback method for this sensor.')
+            logging.error("No callback method for this sensor.")
 
     # Parsing CARLA physical Sensors
     def _parse_image_cb(self, image, tag):
@@ -76,7 +74,7 @@ class CallBack(object):
         """
         parses lidar sensors
         """
-        points = np.frombuffer(lidar_data.raw_data, dtype=np.dtype('f4'))
+        points = np.frombuffer(lidar_data.raw_data, dtype=np.dtype("f4"))
         points = copy.deepcopy(points)
         points = np.reshape(points, (int(points.shape[0] / 4), 4))
         self._data_provider.update_sensor(tag, points, lidar_data.frame)
@@ -86,7 +84,7 @@ class CallBack(object):
         parses radar sensors
         """
         # [depth, azimuth, altitute, velocity]
-        points = np.frombuffer(radar_data.raw_data, dtype=np.dtype('f4'))
+        points = np.frombuffer(radar_data.raw_data, dtype=np.dtype("f4"))
         points = copy.deepcopy(points)
         points = np.reshape(points, (int(points.shape[0] / 4), 4))
         points = np.flip(points, 1)
@@ -96,28 +94,32 @@ class CallBack(object):
         """
         parses gnss sensors
         """
-        array = np.array([gnss_data.latitude,
-                          gnss_data.longitude,
-                          gnss_data.altitude], dtype=np.float64)
+        array = np.array(
+            [gnss_data.latitude, gnss_data.longitude, gnss_data.altitude],
+            dtype=np.float64,
+        )
         self._data_provider.update_sensor(tag, array, gnss_data.frame)
 
     def _parse_imu_cb(self, imu_data, tag):
         """
         parses IMU sensors
         """
-        array = np.array([imu_data.accelerometer.x,
-                          imu_data.accelerometer.y,
-                          imu_data.accelerometer.z,
-                          imu_data.gyroscope.x,
-                          imu_data.gyroscope.y,
-                          imu_data.gyroscope.z,
-                          imu_data.compass,
-                          ], dtype=np.float64)
+        array = np.array(
+            [
+                imu_data.accelerometer.x,
+                imu_data.accelerometer.y,
+                imu_data.accelerometer.z,
+                imu_data.gyroscope.x,
+                imu_data.gyroscope.y,
+                imu_data.gyroscope.z,
+                imu_data.compass,
+            ],
+            dtype=np.float64,
+        )
         self._data_provider.update_sensor(tag, array, imu_data.frame)
 
 
 class SensorInterface(object):
-
     """
     Class that contains all sensor data
     """
@@ -144,7 +146,9 @@ class SensorInterface(object):
         Updates the sensor
         """
         if tag not in self._sensors_objects:
-            raise ValueError("The sensor with tag [{}] has not been created!".format(tag))
+            raise ValueError(
+                "The sensor with tag [{}] has not been created!".format(tag)
+            )
 
         self._new_data_buffers.put((tag, timestamp, data))
 
@@ -157,7 +161,7 @@ class SensorInterface(object):
             while len(data_dict.keys()) < len(self._sensors_objects.keys()):
 
                 sensor_data = self._new_data_buffers.get(True, self._queue_timeout)
-                data_dict[sensor_data[0]] = ((sensor_data[1], sensor_data[2]))
+                data_dict[sensor_data[0]] = (sensor_data[1], sensor_data[2])
 
         except Empty:
             raise SensorReceivedNoData("A sensor took too long to send its data")

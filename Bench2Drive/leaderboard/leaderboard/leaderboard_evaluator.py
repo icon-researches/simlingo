@@ -10,12 +10,14 @@ CARLA Challenge Evaluator Routes
 
 Provisional code to evaluate Autonomous Agents for the CARLA Autonomous Driving challenge
 """
+
 from __future__ import print_function
 
 import traceback
 import argparse
 
 from argparse import RawTextHelpFormatter
+
 # from distutils.version import LooseVersion
 import importlib
 import os
@@ -33,7 +35,11 @@ from srunner.scenariomanager.watchdog import Watchdog
 from leaderboard.scenarios.scenario_manager import ScenarioManager
 from leaderboard.scenarios.route_scenario import RouteScenario
 from leaderboard.envs.sensor_interface import SensorConfigurationInvalid
-from leaderboard.autoagents.agent_wrapper import AgentError, validate_sensor_configuration, TickRuntimeError
+from leaderboard.autoagents.agent_wrapper import (
+    AgentError,
+    validate_sensor_configuration,
+    TickRuntimeError,
+)
 from leaderboard.utils.statistics_manager import StatisticsManager, FAILURE_MESSAGES
 from leaderboard.utils.route_indexer import RouteIndexer
 import atexit
@@ -43,16 +49,17 @@ import random
 from datetime import datetime
 
 sensors_to_icons = {
-    'sensor.camera.rgb':        'carla_camera',
-    'sensor.lidar.ray_cast':    'carla_lidar',
-    'sensor.other.radar':       'carla_radar',
-    'sensor.other.gnss':        'carla_gnss',
-    'sensor.other.imu':         'carla_imu',
-    'sensor.opendrive_map':     'carla_opendrive_map',
-    'sensor.speedometer':       'carla_speedometer'
+    "sensor.camera.rgb": "carla_camera",
+    "sensor.lidar.ray_cast": "carla_lidar",
+    "sensor.other.radar": "carla_radar",
+    "sensor.other.gnss": "carla_gnss",
+    "sensor.other.imu": "carla_imu",
+    "sensor.opendrive_map": "carla_opendrive_map",
+    "sensor.speedometer": "carla_speedometer",
 }
 
 import socket
+
 
 def find_free_port(starting_port):
     port = starting_port
@@ -64,24 +71,30 @@ def find_free_port(starting_port):
         except OSError:
             port += 1
 
+
 def get_weather_id(weather_conditions):
     from xml.etree import ElementTree as ET
+
     WORK_DIR = os.environ.get("WORK_DIR", "")
     if WORK_DIR != "":
         WORK_DIR += "/"
-    tree = ET.parse(WORK_DIR + 'leaderboard/data/weather.xml')
+    tree = ET.parse(WORK_DIR + "leaderboard/data/weather.xml")
     root = tree.getroot()
+
     def conditions_match(weather, conditions):
-        for (key, value) in weather:
-            if key == 'route_percentage' : continue
-            if str(getattr(conditions, key))!= value:
+        for key, value in weather:
+            if key == "route_percentage":
+                continue
+            if str(getattr(conditions, key)) != value:
                 return False
         return True
-    for case in root.findall('case'):
+
+    for case in root.findall("case"):
         weather = case[0].items()
         if conditions_match(weather, weather_conditions):
             return case.items()[0][1]
     return None
+
 
 class LeaderboardEvaluator(object):
     """
@@ -91,7 +104,7 @@ class LeaderboardEvaluator(object):
 
     # Tunable parameters
     client_timeout = 300.0  # in seconds
-    frame_rate = 20.0      # in Hz
+    frame_rate = 20.0  # in Hz
 
     def __init__(self, args, statistics_manager):
         """
@@ -114,7 +127,9 @@ class LeaderboardEvaluator(object):
         self._ros1_server = None
 
         # Setup the simulation
-        self.client, self.client_timeout, self.traffic_manager = self._setup_simulation(args)
+        self.client, self.client_timeout, self.traffic_manager = self._setup_simulation(
+            args
+        )
 
         # dist = pkg_resources.get_distribution("carla")
         # if dist.version != 'leaderboard':
@@ -122,12 +137,14 @@ class LeaderboardEvaluator(object):
         #         raise ImportError("CARLA version 0.9.10.1 or newer required. CARLA version found: {}".format(dist))
 
         # Load agent
-        module_name = os.path.basename(args.agent).split('.')[0]
+        module_name = os.path.basename(args.agent).split(".")[0]
         sys.path.insert(0, os.path.dirname(args.agent))
         self.module_agent = importlib.import_module(module_name)
 
         # Create the ScenarioManager
-        self.manager = ScenarioManager(args.timeout, self.statistics_manager, args.debug)
+        self.manager = ScenarioManager(
+            args.timeout, self.statistics_manager, args.debug
+        )
 
         # Time control for summary purposes
         self._start_time = GameTime.get_time()
@@ -145,7 +162,11 @@ class LeaderboardEvaluator(object):
         Either the agent initialization watchdog is triggered, or the runtime one at scenario manager
         """
         if self._agent_watchdog and not self._agent_watchdog.get_status():
-            raise RuntimeError("Timeout: Agent took longer than {}s to setup".format(self.client_timeout))
+            raise RuntimeError(
+                "Timeout: Agent took longer than {}s to setup".format(
+                    self.client_timeout
+                )
+            )
         elif self.manager:
             self.manager.signal_handler(signum, frame)
 
@@ -153,9 +174,9 @@ class LeaderboardEvaluator(object):
         """
         Cleanup and delete actors, ScenarioManager and CARLA world
         """
-        if hasattr(self, 'manager') and self.manager:
+        if hasattr(self, "manager") and self.manager:
             del self.manager
-        if hasattr(self, 'world') and self.world:
+        if hasattr(self, "world") and self.world:
             del self.world
 
     def _get_running_status(self):
@@ -195,7 +216,7 @@ class LeaderboardEvaluator(object):
             self.manager.cleanup()
 
         # Make sure no sensors are left streaming
-        alive_sensors = self.world.get_actors().filter('*sensor*')
+        alive_sensors = self.world.get_actors().filter("*sensor*")
         for sensor in alive_sensors:
             sensor.stop()
             sensor.destroy()
@@ -211,7 +232,7 @@ class LeaderboardEvaluator(object):
         print(cmd1, self.server.returncode, flush=True)
         atexit.register(os.killpg, self.server.pid, signal.SIGKILL)
         time.sleep(60)
-            
+
         attempts = 0
         num_max_restarts = 20
         while attempts < num_max_restarts:
@@ -222,10 +243,10 @@ class LeaderboardEvaluator(object):
                 client.set_timeout(client_timeout)
 
                 settings = carla.WorldSettings(
-                    synchronous_mode = True,
-                    fixed_delta_seconds = 1.0 / self.frame_rate,
-                    deterministic_ragdolls = True,
-                    spectator_as_ego = False
+                    synchronous_mode=True,
+                    fixed_delta_seconds=1.0 / self.frame_rate,
+                    deterministic_ragdolls=True,
+                    spectator_as_ego=False,
                 )
                 client.get_world().apply_settings(settings)
                 print(f"load_world success , attempts={attempts}", flush=True)
@@ -296,8 +317,10 @@ class LeaderboardEvaluator(object):
 
         map_name = CarlaDataProvider.get_map().name.split("/")[-1]
         if map_name != town:
-            raise Exception("The CARLA server uses the wrong map!"
-                            " This scenario requires the use of map {}".format(town))
+            raise Exception(
+                "The CARLA server uses the wrong map!"
+                " This scenario requires the use of map {}".format(town)
+            )
 
     def _register_statistics(self, route_index, entry_status, crash_message=""):
         """
@@ -306,7 +329,10 @@ class LeaderboardEvaluator(object):
         print("\033[1m> Registering the route statistics\033[0m", flush=True)
         self.statistics_manager.save_entry_status(entry_status)
         self.statistics_manager.compute_route_statistics(
-            route_index, self.manager.scenario_duration_system, self.manager.scenario_duration_game, crash_message
+            route_index,
+            self.manager.scenario_duration_system,
+            self.manager.scenario_duration_game,
+            crash_message,
         )
 
     def _load_and_run_scenario(self, args, config):
@@ -319,7 +345,12 @@ class LeaderboardEvaluator(object):
         crash_message = ""
         entry_status = "Started"
 
-        print("\n\033[1m========= Preparing {} (repetition {}) =========\033[0m".format(config.name, config.repetition_index), flush=True)
+        print(
+            "\n\033[1m========= Preparing {} (repetition {}) =========\033[0m".format(
+                config.name, config.repetition_index
+            ),
+            flush=True,
+        )
 
         # Prepare the statistics of the route
         route_name = f"{config.name}_rep{config.repetition_index}"
@@ -328,15 +359,21 @@ class LeaderboardEvaluator(object):
         weather_id = get_weather_id(config.weather[0][1])
         currentDateAndTime = datetime.now()
         currentTime = currentDateAndTime.strftime("%m_%d_%H_%M_%S")
-        save_name = f"{route_name}_{town_name}_{scenario_name}_{weather_id}_{currentTime}"
-        self.statistics_manager.create_route_data(route_name, scenario_name, weather_id, save_name, town_name, config.index)
+        save_name = (
+            f"{route_name}_{town_name}_{scenario_name}_{weather_id}_{currentTime}"
+        )
+        self.statistics_manager.create_route_data(
+            route_name, scenario_name, weather_id, save_name, town_name, config.index
+        )
 
         print("\033[1m> Loading the world\033[0m", flush=True)
 
         # Load the world and the scenario
         try:
             self._load_and_wait_for_world(args, config.town)
-            self.route_scenario = RouteScenario(world=self.world, config=config, debug_mode=args.debug)
+            self.route_scenario = RouteScenario(
+                world=self.world, config=config, debug_mode=args.debug
+            )
             self.statistics_manager.set_scenario(self.route_scenario)
 
         except Exception:
@@ -355,18 +392,24 @@ class LeaderboardEvaluator(object):
         try:
             self._agent_watchdog = Watchdog(args.timeout)
             self._agent_watchdog.start()
-            agent_class_name = getattr(self.module_agent, 'get_entry_point')()
+            agent_class_name = getattr(self.module_agent, "get_entry_point")()
             agent_class_obj = getattr(self.module_agent, agent_class_name)
 
             # Start the ROS1 bridge server only for ROS1 based agents.
-            if getattr(agent_class_obj, 'get_ros_version')() == 1 and self._ros1_server is None:
+            if (
+                getattr(agent_class_obj, "get_ros_version")() == 1
+                and self._ros1_server is None
+            ):
                 from leaderboard.autoagents.ros1_agent import ROS1Server
+
                 self._ros1_server = ROS1Server()
                 self._ros1_server.start()
 
             self.agent_instance = agent_class_obj(args.host, args.port, args.debug)
-            self.agent_instance.set_global_plan(self.route_scenario.gps_route, self.route_scenario.route)
-            args.agent_config = args.agent_config + '+' + save_name
+            self.agent_instance.set_global_plan(
+                self.route_scenario.gps_route, self.route_scenario.route
+            )
+            args.agent_config = args.agent_config + "+" + save_name
             self.agent_instance.setup(args.agent_config)
 
             # Check and store the sensors
@@ -376,7 +419,9 @@ class LeaderboardEvaluator(object):
 
                 validate_sensor_configuration(self.sensors, track, args.track)
 
-                self.sensor_icons = [sensors_to_icons[sensor['type']] for sensor in self.sensors]
+                self.sensor_icons = [
+                    sensors_to_icons[sensor["type"]] for sensor in self.sensors
+                ]
                 self.statistics_manager.save_sensors(self.sensor_icons)
                 self.statistics_manager.write_statistics()
 
@@ -412,8 +457,17 @@ class LeaderboardEvaluator(object):
         try:
             # Load scenario and run it
             if args.record:
-                self.client.start_recorder("{}/{}_rep{}.log".format(args.record, config.name, config.repetition_index))
-            self.manager.load_scenario(self.route_scenario, self.agent_instance, config.index, config.repetition_index)
+                self.client.start_recorder(
+                    "{}/{}_rep{}.log".format(
+                        args.record, config.name, config.repetition_index
+                    )
+                )
+            self.manager.load_scenario(
+                self.route_scenario,
+                self.agent_instance,
+                config.index,
+                config.repetition_index,
+            )
             self.manager.tick_count = 0
             self.manager.run_scenario()
 
@@ -426,10 +480,10 @@ class LeaderboardEvaluator(object):
 
         except KeyboardInterrupt:
             return True
-        
+
         except TickRuntimeError:
             entry_status, crash_message = "Started", "TickRuntime"
-        
+
         except Exception:
             print("\n\033[91mError during the simulation:", flush=True)
             print(f"\n{traceback.format_exc()}\033[0m", flush=True)
@@ -448,7 +502,10 @@ class LeaderboardEvaluator(object):
             self._cleanup()
 
         except Exception:
-            print("\n\033[91mFailed to stop the scenario, the statistics might be empty:", flush=True)
+            print(
+                "\n\033[91mFailed to stop the scenario, the statistics might be empty:",
+                flush=True,
+            )
             print(f"\n{traceback.format_exc()}\033[0m", flush=True)
 
             _, crash_message = FAILURE_MESSAGES["Simulation"]
@@ -483,10 +540,15 @@ class LeaderboardEvaluator(object):
             crashed = self._load_and_run_scenario(args, config)
             print(crashed, flush=True)
             # Save the progress and write the route statistics
-            self.statistics_manager.save_progress(route_indexer.index, route_indexer.total)
+            self.statistics_manager.save_progress(
+                route_indexer.index, route_indexer.total
+            )
             self.statistics_manager.write_statistics()
             if crashed:
-                print(f'{route_indexer.index} crash, [{route_indexer.index}/{route_indexer.total}], please restart', flush=True)
+                print(
+                    f"{route_indexer.index} crash, [{route_indexer.index}/{route_indexer.total}], please restart",
+                    flush=True,
+                )
                 break
 
         # Shutdown ROS1 bridge server if necessary
@@ -501,61 +563,116 @@ class LeaderboardEvaluator(object):
             print(f"cost time={time.time()-t1}", flush=True)
             print("\033[1m> Registering the global statistics\033[0m", flush=True)
             self.statistics_manager.compute_global_statistics()
-            self.statistics_manager.validate_and_write_statistics(self.sensors_initialized, crashed)
-        
+            self.statistics_manager.validate_and_write_statistics(
+                self.sensors_initialized, crashed
+            )
+
         if crashed:
-            cmd2 = "ps -ef | grep '-graphicsadapter="+ str(args.gpu_rank) + "' | grep -v grep | awk '{print $2}' | xargs -r kill -9"
+            cmd2 = (
+                "ps -ef | grep '-graphicsadapter="
+                + str(args.gpu_rank)
+                + "' | grep -v grep | awk '{print $2}' | xargs -r kill -9"
+            )
             server = subprocess.Popen(cmd2, shell=True, preexec_fn=os.setsid)
             atexit.register(os.killpg, server.pid, signal.SIGKILL)
 
         return crashed
 
+
 def main():
-    description = "CARLA AD Leaderboard Evaluation: evaluate your Agent in CARLA scenarios\n"
+    description = (
+        "CARLA AD Leaderboard Evaluation: evaluate your Agent in CARLA scenarios\n"
+    )
 
     # general parameters
-    parser = argparse.ArgumentParser(description=description, formatter_class=RawTextHelpFormatter)
-    parser.add_argument('--host', default='localhost',
-                        help='IP of the host server (default: localhost)')
-    parser.add_argument('--port', default=2000, type=int,
-                        help='TCP port to listen to (default: 2000)')
-    parser.add_argument('--traffic-manager-port', default=8000, type=int,
-                        help='Port to use for the TrafficManager (default: 8000)')
-    parser.add_argument('--traffic-manager-seed', default=0, type=int,
-                        help='Seed used by the TrafficManager (default: 0)')
-    parser.add_argument('--debug', type=int,
-                        help='Run with debug output', default=0)
-    parser.add_argument('--record', type=str, default='',
-                        help='Use CARLA recording feature to create a recording of the scenario')
-    parser.add_argument('--timeout', default=600.0, type=float,
-                        help='Set the CARLA client timeout value in seconds')
+    parser = argparse.ArgumentParser(
+        description=description, formatter_class=RawTextHelpFormatter
+    )
+    parser.add_argument(
+        "--host", default="localhost", help="IP of the host server (default: localhost)"
+    )
+    parser.add_argument(
+        "--port", default=2000, type=int, help="TCP port to listen to (default: 2000)"
+    )
+    parser.add_argument(
+        "--traffic-manager-port",
+        default=8000,
+        type=int,
+        help="Port to use for the TrafficManager (default: 8000)",
+    )
+    parser.add_argument(
+        "--traffic-manager-seed",
+        default=0,
+        type=int,
+        help="Seed used by the TrafficManager (default: 0)",
+    )
+    parser.add_argument("--debug", type=int, help="Run with debug output", default=0)
+    parser.add_argument(
+        "--record",
+        type=str,
+        default="",
+        help="Use CARLA recording feature to create a recording of the scenario",
+    )
+    parser.add_argument(
+        "--timeout",
+        default=600.0,
+        type=float,
+        help="Set the CARLA client timeout value in seconds",
+    )
 
     # simulation setup
-    parser.add_argument('--routes', required=True,
-                        help='Name of the routes file to be executed.')
-    parser.add_argument('--routes-subset', default='', type=str,
-                        help='Execute a specific set of routes')
-    parser.add_argument('--repetitions', type=int, default=1,
-                        help='Number of repetitions per route.')
+    parser.add_argument(
+        "--routes", required=True, help="Name of the routes file to be executed."
+    )
+    parser.add_argument(
+        "--routes-subset", default="", type=str, help="Execute a specific set of routes"
+    )
+    parser.add_argument(
+        "--repetitions", type=int, default=1, help="Number of repetitions per route."
+    )
 
     # agent-related options
-    parser.add_argument("-a", "--agent", type=str,
-                        help="Path to Agent's py file to evaluate", required=True)
-    parser.add_argument("--agent-config", type=str,
-                        help="Path to Agent's configuration file", default="")
+    parser.add_argument(
+        "-a",
+        "--agent",
+        type=str,
+        help="Path to Agent's py file to evaluate",
+        required=True,
+    )
+    parser.add_argument(
+        "--agent-config",
+        type=str,
+        help="Path to Agent's configuration file",
+        default="",
+    )
 
-    parser.add_argument("--track", type=str, default='SENSORS',
-                        help="Participation track: SENSORS, MAP")
-    parser.add_argument('--resume', type=bool, default=False,
-                        help='Resume execution from last checkpoint?')
-    parser.add_argument("--checkpoint", type=str, default='./simulation_results.json',
-                        help="Path to checkpoint used for saving statistics and resuming")
-    parser.add_argument("--debug-checkpoint", type=str, default='./live_results.txt',
-                        help="Path to checkpoint used for saving live results")
+    parser.add_argument(
+        "--track", type=str, default="SENSORS", help="Participation track: SENSORS, MAP"
+    )
+    parser.add_argument(
+        "--resume",
+        type=bool,
+        default=False,
+        help="Resume execution from last checkpoint?",
+    )
+    parser.add_argument(
+        "--checkpoint",
+        type=str,
+        default="./simulation_results.json",
+        help="Path to checkpoint used for saving statistics and resuming",
+    )
+    parser.add_argument(
+        "--debug-checkpoint",
+        type=str,
+        default="./live_results.txt",
+        help="Path to checkpoint used for saving live results",
+    )
     parser.add_argument("--gpu-rank", type=int, default=0)
     arguments = parser.parse_args()
 
-    statistics_manager = StatisticsManager(arguments.checkpoint, arguments.debug_checkpoint)
+    statistics_manager = StatisticsManager(
+        arguments.checkpoint, arguments.debug_checkpoint
+    )
     leaderboard_evaluator = LeaderboardEvaluator(arguments, statistics_manager)
     crashed = leaderboard_evaluator.run(arguments)
 
@@ -566,5 +683,6 @@ def main():
     else:
         sys.exit(0)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

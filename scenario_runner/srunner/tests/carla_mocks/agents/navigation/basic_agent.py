@@ -14,7 +14,11 @@ from enum import Enum
 
 from agents.navigation.local_planner import LocalPlanner
 from agents.navigation.global_route_planner import GlobalRoutePlanner
-from agents.tools.misc import get_speed, is_within_distance, get_trafficlight_trigger_location
+from agents.tools.misc import (
+    get_speed,
+    is_within_distance,
+    get_trafficlight_trigger_location,
+)
 
 
 class BasicAgent(object):
@@ -50,21 +54,21 @@ class BasicAgent(object):
         self._max_brake = 0.5
 
         # Change parameters according to the dictionary
-        opt_dict['target_speed'] = target_speed
-        if 'ignore_traffic_lights' in opt_dict:
-            self._ignore_traffic_lights = opt_dict['ignore_traffic_lights']
-        if 'ignore_stop_signs' in opt_dict:
-            self._ignore_stop_signs = opt_dict['ignore_stop_signs']
-        if 'ignore_vehicles' in opt_dict:
-            self._ignore_vehicles = opt_dict['ignore_vehicles']
-        if 'sampling_resolution' in opt_dict:
-            self._sampling_resolution = opt_dict['sampling_resolution']
-        if 'base_tlight_threshold' in opt_dict:
-            self._base_tlight_threshold = opt_dict['base_tlight_threshold']
-        if 'base_vehicle_threshold' in opt_dict:
-            self._base_vehicle_threshold = opt_dict['base_vehicle_threshold']
-        if 'max_brake' in opt_dict:
-            self._max_steering = opt_dict['max_brake']
+        opt_dict["target_speed"] = target_speed
+        if "ignore_traffic_lights" in opt_dict:
+            self._ignore_traffic_lights = opt_dict["ignore_traffic_lights"]
+        if "ignore_stop_signs" in opt_dict:
+            self._ignore_stop_signs = opt_dict["ignore_stop_signs"]
+        if "ignore_vehicles" in opt_dict:
+            self._ignore_vehicles = opt_dict["ignore_vehicles"]
+        if "sampling_resolution" in opt_dict:
+            self._sampling_resolution = opt_dict["sampling_resolution"]
+        if "base_tlight_threshold" in opt_dict:
+            self._base_tlight_threshold = opt_dict["base_tlight_threshold"]
+        if "base_vehicle_threshold" in opt_dict:
+            self._base_vehicle_threshold = opt_dict["base_vehicle_threshold"]
+        if "max_brake" in opt_dict:
+            self._max_steering = opt_dict["max_brake"]
 
         # Initialize the planners
         self._local_planner = LocalPlanner(self._vehicle, opt_dict=opt_dict)
@@ -137,9 +141,7 @@ class BasicAgent(object):
             :param clean_queue: resets the current agent's plan
         """
         self._local_planner.set_global_plan(
-            plan,
-            stop_waypoint_creation=stop_waypoint_creation,
-            clean_queue=clean_queue
+            plan, stop_waypoint_creation=stop_waypoint_creation, clean_queue=clean_queue
         )
 
     def trace_route(self, start_waypoint, end_waypoint):
@@ -166,13 +168,17 @@ class BasicAgent(object):
 
         # Check for possible vehicle obstacles
         max_vehicle_distance = self._base_vehicle_threshold + vehicle_speed
-        affected_by_vehicle, _ = self._vehicle_obstacle_detected(vehicle_list, max_vehicle_distance)
+        affected_by_vehicle, _ = self._vehicle_obstacle_detected(
+            vehicle_list, max_vehicle_distance
+        )
         if affected_by_vehicle:
             hazard_detected = True
 
         # Check if the vehicle is affected by a red traffic light
         max_tlight_distance = self._base_tlight_threshold + vehicle_speed
-        affected_by_tlight, _ = self._affected_by_traffic_light(lights_list, max_tlight_distance)
+        affected_by_tlight, _ = self._affected_by_traffic_light(
+            lights_list, max_tlight_distance
+        )
         if affected_by_tlight:
             hazard_detected = True
 
@@ -242,7 +248,12 @@ class BasicAgent(object):
             if traffic_light.state != carla.TrafficLightState.Red:
                 continue
 
-            if is_within_distance(object_waypoint.transform, self._vehicle.get_transform(), max_distance, [0, 90]):
+            if is_within_distance(
+                object_waypoint.transform,
+                self._vehicle.get_transform(),
+                max_distance,
+                [0, 90],
+            ):
                 self._last_traffic_light = traffic_light
                 return (True, traffic_light)
 
@@ -281,11 +292,19 @@ class BasicAgent(object):
         for target_vehicle in vehicle_list:
             target_transform = target_vehicle.get_transform()
             target_wpt = self._map.get_waypoint(target_transform.location)
-            if target_wpt.road_id != ego_wpt.road_id or target_wpt.lane_id != ego_wpt.lane_id:
-                next_wpt = self._local_planner.get_incoming_waypoint_and_direction(steps=3)[0]
+            if (
+                target_wpt.road_id != ego_wpt.road_id
+                or target_wpt.lane_id != ego_wpt.lane_id
+            ):
+                next_wpt = self._local_planner.get_incoming_waypoint_and_direction(
+                    steps=3
+                )[0]
                 if not next_wpt:
                     continue
-                if target_wpt.road_id != next_wpt.road_id or target_wpt.lane_id != next_wpt.lane_id:
+                if (
+                    target_wpt.road_id != next_wpt.road_id
+                    or target_wpt.lane_id != next_wpt.lane_id
+                ):
                     continue
 
             target_forward_vector = target_transform.get_forward_vector()
@@ -296,6 +315,8 @@ class BasicAgent(object):
                 y=target_extent * target_forward_vector.y,
             )
 
-            if is_within_distance(target_rear_transform, ego_front_transform, max_distance, [0, 90]):
+            if is_within_distance(
+                target_rear_transform, ego_front_transform, max_distance, [0, 90]
+            ):
                 return (True, target_vehicle)
         return (False, None)

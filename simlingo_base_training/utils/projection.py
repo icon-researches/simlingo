@@ -1,23 +1,20 @@
-
 import numpy as np
 import torch
 import cv2
 
+
 def project_points(points2D_list, K):
 
     all_points_2d = []
-    for point in  points2D_list:
+    for point in points2D_list:
         pos_3d = np.array([point[1], 0, point[0]])
-        rvec = np.zeros((3, 1), np.float32) 
+        rvec = np.zeros((3, 1), np.float32)
         tvec = np.array([[0.0, 2.0, 1.5]], np.float32)
-        # Define the distortion coefficients 
-        dist_coeffs = np.zeros((5, 1), np.float32) 
-        points_2d, _ = cv2.projectPoints(pos_3d, 
-                            rvec, tvec, 
-                            K, 
-                            dist_coeffs)
+        # Define the distortion coefficients
+        dist_coeffs = np.zeros((5, 1), np.float32)
+        points_2d, _ = cv2.projectPoints(pos_3d, rvec, tvec, K, dist_coeffs)
         all_points_2d.append(points_2d[0][0])
-        
+
     return all_points_2d
 
 
@@ -40,6 +37,7 @@ def get_camera_intrinsics(w, h, fov):
     K = torch.tensor(K, dtype=torch.float32)
     return K
 
+
 def get_camera_extrinsics():
     """
     Get camera extrinsics matrix for the carla camera.
@@ -59,6 +57,7 @@ def get_camera_extrinsics():
     extrinsics = torch.tensor(extrinsics, dtype=torch.float32)
 
     return extrinsics
+
 
 def get_camera_distortion():
     """

@@ -30,15 +30,22 @@ from sensor_msgs.msg import Image, PointCloud2, NavSatFix, NavSatStatus, CameraI
 from sensor_msgs.point_cloud2 import create_cloud_xyz32
 from std_msgs.msg import Header, String
 import tf
+
 # pylint: disable=line-too-long
-from carla_msgs.msg import CarlaEgoVehicleStatus, CarlaEgoVehicleInfo, CarlaEgoVehicleInfoWheel, CarlaEgoVehicleControl, CarlaWorldInfo
+from carla_msgs.msg import (
+    CarlaEgoVehicleStatus,
+    CarlaEgoVehicleInfo,
+    CarlaEgoVehicleInfoWheel,
+    CarlaEgoVehicleControl,
+    CarlaWorldInfo,
+)
+
 # pylint: enable=line-too-long
 
 from srunner.autoagents.autonomous_agent import AutonomousAgent
 
 
 class RosAgent(AutonomousAgent):
-
     """
     Base class for ROS-based stacks.
 
@@ -69,30 +76,42 @@ class RosAgent(AutonomousAgent):
         self.stack_thread = None
 
         # get start_script from environment
-        team_code_path = os.environ['TEAM_CODE_ROOT']
+        team_code_path = os.environ["TEAM_CODE_ROOT"]
         if not team_code_path or not os.path.exists(team_code_path):
-            raise IOError("Path '{}' defined by TEAM_CODE_ROOT invalid".format(team_code_path))
+            raise IOError(
+                "Path '{}' defined by TEAM_CODE_ROOT invalid".format(team_code_path)
+            )
         start_script = "{}/start.sh".format(team_code_path)
         if not os.path.exists(start_script):
-            raise IOError("File '{}' defined by TEAM_CODE_ROOT invalid".format(start_script))
+            raise IOError(
+                "File '{}' defined by TEAM_CODE_ROOT invalid".format(start_script)
+            )
 
         # set use_sim_time via commandline before init-node
         process = subprocess.Popen(
-            "rosparam set use_sim_time true", shell=True, stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
+            "rosparam set use_sim_time true",
+            shell=True,
+            stderr=subprocess.STDOUT,
+            stdout=subprocess.PIPE,
+        )
         process.wait()
         if process.returncode:
             raise RuntimeError("Could not set use_sim_time")
 
         # initialize ros node
-        rospy.init_node('ros_agent', anonymous=True)
+        rospy.init_node("ros_agent", anonymous=True)
 
         # publish first clock value '0'
-        self.clock_publisher = rospy.Publisher('clock', Clock, queue_size=10, latch=True)
+        self.clock_publisher = rospy.Publisher(
+            "clock", Clock, queue_size=10, latch=True
+        )
         self.clock_publisher.publish(Clock(rospy.Time.from_sec(0)))
 
         # execute script that starts the ad stack (remains running)
         rospy.loginfo("Executing stack...")
-        self.stack_process = subprocess.Popen(start_script, shell=True, preexec_fn=os.setpgrp)
+        self.stack_process = subprocess.Popen(
+            start_script, shell=True, preexec_fn=os.setpgrp
+        )
 
         self.vehicle_control_event = threading.Event()
         self.timestamp = None
@@ -109,12 +128,16 @@ class RosAgent(AutonomousAgent):
         self.step_mode_possible = False
 
         self.vehicle_control_subscriber = rospy.Subscriber(
-            '/carla/ego_vehicle/vehicle_control_cmd', CarlaEgoVehicleControl, self.on_vehicle_control)
+            "/carla/ego_vehicle/vehicle_control_cmd",
+            CarlaEgoVehicleControl,
+            self.on_vehicle_control,
+        )
 
         self.current_control = carla.VehicleControl()
 
         self.waypoint_publisher = rospy.Publisher(
-            '/carla/ego_vehicle/waypoints', Path, queue_size=1, latch=True)
+            "/carla/ego_vehicle/waypoints", Path, queue_size=1, latch=True
+        )
 
         self.publisher_map = {}
         self.id_to_sensor_type_map = {}
@@ -124,39 +147,72 @@ class RosAgent(AutonomousAgent):
         # setup ros publishers for sensors
         # pylint: disable=line-too-long
         for sensor in self.sensors():
-            self.id_to_sensor_type_map[sensor['id']] = sensor['type']
-            if sensor['type'] == 'sensor.camera.rgb':
-                self.publisher_map[sensor['id']] = rospy.Publisher(
-                    '/carla/ego_vehicle/camera/rgb/' + sensor['id'] + "/image_color", Image, queue_size=1, latch=True)
-                self.id_to_camera_info_map[sensor['id']] = self.build_camera_info(sensor)
-                self.publisher_map[sensor['id'] + '_info'] = rospy.Publisher(
-                    '/carla/ego_vehicle/camera/rgb/' + sensor['id'] + "/camera_info", CameraInfo, queue_size=1, latch=True)
-            elif sensor['type'] == 'sensor.lidar.ray_cast':
-                self.publisher_map[sensor['id']] = rospy.Publisher(
-                    '/carla/ego_vehicle/lidar/' + sensor['id'] + "/point_cloud", PointCloud2, queue_size=1, latch=True)
-            elif sensor['type'] == 'sensor.other.gnss':
-                self.publisher_map[sensor['id']] = rospy.Publisher(
-                    '/carla/ego_vehicle/gnss/' + sensor['id'] + "/fix", NavSatFix, queue_size=1, latch=True)
-            elif sensor['type'] == 'sensor.can_bus':
+            self.id_to_sensor_type_map[sensor["id"]] = sensor["type"]
+            if sensor["type"] == "sensor.camera.rgb":
+                self.publisher_map[sensor["id"]] = rospy.Publisher(
+                    "/carla/ego_vehicle/camera/rgb/" + sensor["id"] + "/image_color",
+                    Image,
+                    queue_size=1,
+                    latch=True,
+                )
+                self.id_to_camera_info_map[sensor["id"]] = self.build_camera_info(
+                    sensor
+                )
+                self.publisher_map[sensor["id"] + "_info"] = rospy.Publisher(
+                    "/carla/ego_vehicle/camera/rgb/" + sensor["id"] + "/camera_info",
+                    CameraInfo,
+                    queue_size=1,
+                    latch=True,
+                )
+            elif sensor["type"] == "sensor.lidar.ray_cast":
+                self.publisher_map[sensor["id"]] = rospy.Publisher(
+                    "/carla/ego_vehicle/lidar/" + sensor["id"] + "/point_cloud",
+                    PointCloud2,
+                    queue_size=1,
+                    latch=True,
+                )
+            elif sensor["type"] == "sensor.other.gnss":
+                self.publisher_map[sensor["id"]] = rospy.Publisher(
+                    "/carla/ego_vehicle/gnss/" + sensor["id"] + "/fix",
+                    NavSatFix,
+                    queue_size=1,
+                    latch=True,
+                )
+            elif sensor["type"] == "sensor.can_bus":
                 if not self.vehicle_info_publisher:
                     self.vehicle_info_publisher = rospy.Publisher(
-                        '/carla/ego_vehicle/vehicle_info', CarlaEgoVehicleInfo, queue_size=1, latch=True)
+                        "/carla/ego_vehicle/vehicle_info",
+                        CarlaEgoVehicleInfo,
+                        queue_size=1,
+                        latch=True,
+                    )
                 if not self.vehicle_status_publisher:
                     self.vehicle_status_publisher = rospy.Publisher(
-                        '/carla/ego_vehicle/vehicle_status', CarlaEgoVehicleStatus, queue_size=1, latch=True)
-            elif sensor['type'] == 'sensor.hd_map':
+                        "/carla/ego_vehicle/vehicle_status",
+                        CarlaEgoVehicleStatus,
+                        queue_size=1,
+                        latch=True,
+                    )
+            elif sensor["type"] == "sensor.hd_map":
                 if not self.odometry_publisher:
                     self.odometry_publisher = rospy.Publisher(
-                        '/carla/ego_vehicle/odometry', Odometry, queue_size=1, latch=True)
+                        "/carla/ego_vehicle/odometry",
+                        Odometry,
+                        queue_size=1,
+                        latch=True,
+                    )
                 if not self.world_info_publisher:
                     self.world_info_publisher = rospy.Publisher(
-                        '/carla/world_info', CarlaWorldInfo, queue_size=1, latch=True)
+                        "/carla/world_info", CarlaWorldInfo, queue_size=1, latch=True
+                    )
                 if not self.map_file_publisher:
-                    self.map_file_publisher = rospy.Publisher('/carla/map_file', String, queue_size=1, latch=True)
+                    self.map_file_publisher = rospy.Publisher(
+                        "/carla/map_file", String, queue_size=1, latch=True
+                    )
                 if not self.tf_broadcaster:
                     self.tf_broadcaster = tf.TransformBroadcaster()
             else:
-                raise TypeError("Invalid sensor type: {}".format(sensor['type']))
+                raise TypeError("Invalid sensor type: {}".format(sensor["type"]))
         # pylint: enable=line-too-long
 
     def destroy(self):
@@ -207,13 +263,14 @@ class RosAgent(AutonomousAgent):
         camera_info = CameraInfo()
         # store info without header
         camera_info.header = None
-        camera_info.width = int(attributes['width'])
-        camera_info.height = int(attributes['height'])
-        camera_info.distortion_model = 'plumb_bob'
+        camera_info.width = int(attributes["width"])
+        camera_info.height = int(attributes["height"])
+        camera_info.distortion_model = "plumb_bob"
         cx = camera_info.width / 2.0
         cy = camera_info.height / 2.0
         fx = camera_info.width / (
-            2.0 * math.tan(float(attributes['fov']) * math.pi / 360.0))
+            2.0 * math.tan(float(attributes["fov"]) * math.pi / 360.0)
+        )
         fy = fx
         camera_info.K = [fx, 0, cx, 0, fy, cy, 0, 0, 1]
         camera_info.D = [0, 0, 0, 0, 0]
@@ -234,7 +291,8 @@ class RosAgent(AutonomousAgent):
             pose.pose.position.y = -wp[0].location.y
             pose.pose.position.z = wp[0].location.z
             quaternion = tf.transformations.quaternion_from_euler(
-                0, 0, -math.radians(wp[0].rotation.yaw))
+                0, 0, -math.radians(wp[0].rotation.yaw)
+            )
             pose.pose.orientation.x = quaternion[0]
             pose.pose.orientation.y = quaternion[1]
             pose.pose.orientation.z = quaternion[2]
@@ -251,7 +309,8 @@ class RosAgent(AutonomousAgent):
         :return: a list containing the required sensors
         """
         raise NotImplementedError(
-            "This function has to be implemented by the derived classes")
+            "This function has to be implemented by the derived classes"
+        )
 
     def get_header(self):
         """
@@ -266,12 +325,10 @@ class RosAgent(AutonomousAgent):
         Function to publish lidar data
         """
         header = self.get_header()
-        header.frame_id = 'ego_vehicle/lidar/{}'.format(sensor_id)
+        header.frame_id = "ego_vehicle/lidar/{}".format(sensor_id)
 
-        lidar_data = numpy.frombuffer(
-            data, dtype=numpy.float32)
-        lidar_data = numpy.reshape(
-            lidar_data, (int(lidar_data.shape[0] / 3), 3))
+        lidar_data = numpy.frombuffer(data, dtype=numpy.float32)
+        lidar_data = numpy.reshape(lidar_data, (int(lidar_data.shape[0] / 3), 3))
         # we take the oposite of y axis
         # (as lidar point are express in left handed coordinate system, and ros need right handed)
         # we need a copy here, because the data are read only in carla numpy
@@ -288,13 +345,18 @@ class RosAgent(AutonomousAgent):
         """
         msg = NavSatFix()
         msg.header = self.get_header()
-        msg.header.frame_id = 'gps'
+        msg.header.frame_id = "gps"
         msg.latitude = data[0]
         msg.longitude = data[1]
         msg.altitude = data[2]
         msg.status.status = NavSatStatus.STATUS_SBAS_FIX
         # pylint: disable=line-too-long
-        msg.status.service = NavSatStatus.SERVICE_GPS | NavSatStatus.SERVICE_GLONASS | NavSatStatus.SERVICE_COMPASS | NavSatStatus.SERVICE_GALILEO
+        msg.status.service = (
+            NavSatStatus.SERVICE_GPS
+            | NavSatStatus.SERVICE_GLONASS
+            | NavSatStatus.SERVICE_COMPASS
+            | NavSatStatus.SERVICE_GALILEO
+        )
         # pylint: enable=line-too-long
         self.publisher_map[sensor_id].publish(msg)
 
@@ -302,14 +364,14 @@ class RosAgent(AutonomousAgent):
         """
         Function to publish camera data
         """
-        msg = self.cv_bridge.cv2_to_imgmsg(data, encoding='bgra8')
+        msg = self.cv_bridge.cv2_to_imgmsg(data, encoding="bgra8")
         # the camera data is in respect to the camera's own frame
         msg.header = self.get_header()
-        msg.header.frame_id = 'ego_vehicle/camera/rgb/{}'.format(sensor_id)
+        msg.header.frame_id = "ego_vehicle/camera/rgb/{}".format(sensor_id)
 
         cam_info = self.id_to_camera_info_map[sensor_id]
         cam_info.header = msg.header
-        self.publisher_map[sensor_id + '_info'].publish(cam_info)
+        self.publisher_map[sensor_id + "_info"].publish(cam_info)
         self.publisher_map[sensor_id].publish(msg)
 
     def publish_can(self, sensor_id, data):
@@ -318,31 +380,37 @@ class RosAgent(AutonomousAgent):
         """
         if not self.vehicle_info_publisher:
             self.vehicle_info_publisher = rospy.Publisher(
-                '/carla/ego_vehicle/vehicle_info', CarlaEgoVehicleInfo, queue_size=1, latch=True)
+                "/carla/ego_vehicle/vehicle_info",
+                CarlaEgoVehicleInfo,
+                queue_size=1,
+                latch=True,
+            )
             info_msg = CarlaEgoVehicleInfo()
-            for wheel in data['wheels']:
+            for wheel in data["wheels"]:
                 wheel_info = CarlaEgoVehicleInfoWheel()
-                wheel_info.tire_friction = wheel['tire_friction']
-                wheel_info.damping_rate = wheel['damping_rate']
-                wheel_info.steer_angle = wheel['steer_angle']
-                wheel_info.disable_steering = wheel['disable_steering']
+                wheel_info.tire_friction = wheel["tire_friction"]
+                wheel_info.damping_rate = wheel["damping_rate"]
+                wheel_info.steer_angle = wheel["steer_angle"]
+                wheel_info.disable_steering = wheel["disable_steering"]
                 info_msg.wheels.append(wheel_info)
-            info_msg.max_rpm = data['max_rpm']
-            info_msg.moi = data['moi']
-            info_msg.damping_rate_full_throttle = data['damping_rate_full_throttle']
-            info_msg.damping_rate_zero_throttle_clutch_disengaged = data['damping_rate_zero_throttle_clutch_disengaged']
-            info_msg.use_gear_autobox = data['use_gear_autobox']
-            info_msg.clutch_strength = data['clutch_strength']
-            info_msg.mass = data['mass']
-            info_msg.drag_coefficient = data['drag_coefficient']
-            info_msg.center_of_mass.x = data['center_of_mass']['x']
-            info_msg.center_of_mass.y = data['center_of_mass']['y']
-            info_msg.center_of_mass.z = data['center_of_mass']['z']
+            info_msg.max_rpm = data["max_rpm"]
+            info_msg.moi = data["moi"]
+            info_msg.damping_rate_full_throttle = data["damping_rate_full_throttle"]
+            info_msg.damping_rate_zero_throttle_clutch_disengaged = data[
+                "damping_rate_zero_throttle_clutch_disengaged"
+            ]
+            info_msg.use_gear_autobox = data["use_gear_autobox"]
+            info_msg.clutch_strength = data["clutch_strength"]
+            info_msg.mass = data["mass"]
+            info_msg.drag_coefficient = data["drag_coefficient"]
+            info_msg.center_of_mass.x = data["center_of_mass"]["x"]
+            info_msg.center_of_mass.y = data["center_of_mass"]["y"]
+            info_msg.center_of_mass.z = data["center_of_mass"]["z"]
             self.vehicle_info_publisher.publish(info_msg)
         msg = CarlaEgoVehicleStatus()
         msg.header = self.get_header()
-        msg.velocity = data['speed']
-        self.speed = data['speed']
+        msg.velocity = data["speed"]
+        self.speed = data["speed"]
         # todo msg.acceleration
         msg.control.throttle = self.current_control.throttle
         msg.control.steer = self.current_control.steer
@@ -358,20 +426,20 @@ class RosAgent(AutonomousAgent):
         """
         publish hd map data
         """
-        roll = -math.radians(data['transform']['roll'])
-        pitch = -math.radians(data['transform']['pitch'])
-        yaw = -math.radians(data['transform']['yaw'])
+        roll = -math.radians(data["transform"]["roll"])
+        pitch = -math.radians(data["transform"]["pitch"])
+        yaw = -math.radians(data["transform"]["yaw"])
         quat = tf.transformations.quaternion_from_euler(roll, pitch, yaw)
-        x = data['transform']['x']
-        y = -data['transform']['y']
-        z = data['transform']['z']
+        x = data["transform"]["x"]
+        y = -data["transform"]["y"]
+        z = data["transform"]["z"]
 
         if self.odometry_publisher:
 
             odometry = Odometry()
-            odometry.header.frame_id = 'map'
+            odometry.header.frame_id = "map"
             odometry.header.stamp = rospy.Time.from_sec(self.timestamp)
-            odometry.child_frame_id = 'base_link'
+            odometry.child_frame_id = "base_link"
             odometry.pose.pose.position.x = x
             odometry.pose.pose.position.y = y
             odometry.pose.pose.position.z = z
@@ -389,15 +457,15 @@ class RosAgent(AutonomousAgent):
 
         if self.world_info_publisher:
             # extract map name
-            map_name = os.path.basename(data['map_file'])[:-4]
+            map_name = os.path.basename(data["map_file"])[:-4]
             if self.current_map_name != map_name:
                 self.current_map_name = map_name
                 world_info = CarlaWorldInfo()
                 world_info.map_name = self.current_map_name
-                world_info.opendrive = data['opendrive']
+                world_info.opendrive = data["opendrive"]
                 self.world_info_publisher.publish(world_info)
         if self.map_file_publisher:
-            self.map_file_publisher.publish(data['map_file'])
+            self.map_file_publisher.publish(data["map_file"])
 
     def use_stepping_mode(self):  # pylint: disable=no-self-use
         """
@@ -415,8 +483,11 @@ class RosAgent(AutonomousAgent):
 
         # check if stack is still running
         if self.stack_process and self.stack_process.poll() is not None:
-            raise RuntimeError("Stack exited with: {} {}".format(
-                self.stack_process.returncode, self.stack_process.communicate()[0]))
+            raise RuntimeError(
+                "Stack exited with: {} {}".format(
+                    self.stack_process.returncode, self.stack_process.communicate()[0]
+                )
+            )
 
         # publish global plan to ROS once
         if self._global_plan_world_coord and not self.global_plan_published:
@@ -429,15 +500,15 @@ class RosAgent(AutonomousAgent):
         for key, val in input_data.items():
             new_data_available = True
             sensor_type = self.id_to_sensor_type_map[key]
-            if sensor_type == 'sensor.camera.rgb':
+            if sensor_type == "sensor.camera.rgb":
                 self.publish_camera(key, val[1])
-            elif sensor_type == 'sensor.lidar.ray_cast':
+            elif sensor_type == "sensor.lidar.ray_cast":
                 self.publish_lidar(key, val[1])
-            elif sensor_type == 'sensor.other.gnss':
+            elif sensor_type == "sensor.other.gnss":
                 self.publish_gnss(key, val[1])
-            elif sensor_type == 'sensor.can_bus':
+            elif sensor_type == "sensor.can_bus":
                 self.publish_can(key, val[1])
-            elif sensor_type == 'sensor.hd_map':
+            elif sensor_type == "sensor.hd_map":
                 self.publish_hd_map(key, val[1])
             else:
                 raise TypeError("Invalid sensor type: {}".format(sensor_type))

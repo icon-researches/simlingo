@@ -16,23 +16,34 @@ import py_trees
 
 import carla
 
-from srunner.scenariomanager.scenarioatomics.atomic_trigger_conditions import (WaitForBlackboardVariable,
-                                                                               InTimeToArrivalToLocation)
+from srunner.scenariomanager.scenarioatomics.atomic_trigger_conditions import (
+    WaitForBlackboardVariable,
+    InTimeToArrivalToLocation,
+)
 from srunner.scenariomanager.scenarioatomics.atomic_behaviors import WaitForever
 from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
 from srunner.scenariomanager.timer import TimeOut
-from srunner.scenariomanager.scenarioatomics.atomic_behaviors import UpdateAllActorControls
+from srunner.scenariomanager.scenarioatomics.atomic_behaviors import (
+    UpdateAllActorControls,
+)
 from srunner.scenariomanager.scenarioatomics.atomic_criteria import Criterion
 
 
 class BasicScenario(object):
-
     """
     Base class for user-defined scenario
     """
 
-    def __init__(self, name, ego_vehicles, config, world,
-                 debug_mode=False, terminate_on_failure=False, criteria_enable=False):
+    def __init__(
+        self,
+        name,
+        ego_vehicles,
+        config,
+        world,
+        debug_mode=False,
+        terminate_on_failure=False,
+        criteria_enable=False,
+    ):
         """
         Setup all relevant parameters and create scenario
         and instantiate scenario manager
@@ -52,15 +63,15 @@ class BasicScenario(object):
         self.criteria_tree = None
 
         # If no timeout was provided, set it to 60 seconds
-        if not hasattr(self, 'timeout'):
-            self.timeout = 60 
+        if not hasattr(self, "timeout"):
+            self.timeout = 60
         if debug_mode:
             py_trees.logging.level = py_trees.logging.Level.DEBUG
 
         if not self.route_mode:
             # Only init env for route mode, avoid duplicate initialization during runtime
             self._initialize_environment(world)
-            
+
         self._initialize_actors(config)
 
         if CarlaDataProvider.is_runtime_init_mode():
@@ -71,7 +82,9 @@ class BasicScenario(object):
             world.wait_for_tick()
 
         # Main scenario tree
-        self.scenario_tree = py_trees.composites.Parallel(name, policy=py_trees.common.ParallelPolicy.SUCCESS_ON_ONE)
+        self.scenario_tree = py_trees.composites.Parallel(
+            name, policy=py_trees.common.ParallelPolicy.SUCCESS_ON_ONE
+        )
 
         # Add a trigger and end condition to the behavior to ensure it is only activated when it is relevant
         self.behavior_tree = py_trees.composites.Sequence()
@@ -114,14 +127,18 @@ class BasicScenario(object):
                 for criterion in criteria:
                     criterion.terminate_on_failure = terminate_on_failure
 
-                self.criteria_tree = py_trees.composites.Parallel(name="Test Criteria",
-                                                                  policy=py_trees.common.ParallelPolicy.SUCCESS_ON_ALL)
+                self.criteria_tree = py_trees.composites.Parallel(
+                    name="Test Criteria",
+                    policy=py_trees.common.ParallelPolicy.SUCCESS_ON_ALL,
+                )
                 self.criteria_tree.add_children(criteria)
                 self.criteria_tree.setup(timeout=1)
 
             else:
-                raise ValueError("WARNING: Scenario {} couldn't be setup, make sure the criteria is either "
-                                 "a list or a py_trees.composites.Composite".format(self.name))
+                raise ValueError(
+                    "WARNING: Scenario {} couldn't be setup, make sure the criteria is either "
+                    "a list or a py_trees.composites.Composite".format(self.name)
+                )
 
             self.scenario_tree.add_child(self.criteria_tree)
 
@@ -146,12 +163,12 @@ class BasicScenario(object):
 
         # Set the appropriate road friction
         if self.config.friction is not None:
-            friction_bp = world.get_blueprint_library().find('static.trigger.friction')
+            friction_bp = world.get_blueprint_library().find("static.trigger.friction")
             extent = carla.Location(1000000.0, 1000000.0, 1000000.0)
-            friction_bp.set_attribute('friction', str(self.config.friction))
-            friction_bp.set_attribute('extent_x', str(extent.x))
-            friction_bp.set_attribute('extent_y', str(extent.y))
-            friction_bp.set_attribute('extent_z', str(extent.z))
+            friction_bp.set_attribute("friction", str(self.config.friction))
+            friction_bp.set_attribute("extent_x", str(extent.x))
+            friction_bp.set_attribute("extent_y", str(extent.y))
+            friction_bp.set_attribute("extent_z", str(extent.z))
 
             # Spawn Trigger Friction
             transform = carla.Transform()
@@ -189,7 +206,9 @@ class BasicScenario(object):
 
         # Scenario is part of a route.
         check_name = "WaitForBlackboardVariable: {}".format(config.route_var_name)
-        return WaitForBlackboardVariable(config.route_var_name, True, False, name=check_name)
+        return WaitForBlackboardVariable(
+            config.route_var_name, True, False, name=check_name
+        )
 
     def _setup_scenario_end(self, config):
         """
@@ -203,7 +222,11 @@ class BasicScenario(object):
         # Scenario is part of a route.
         end_sequence = py_trees.composites.Sequence()
         name = "Reset Blackboard Variable: {} ".format(config.route_var_name)
-        end_sequence.add_child(py_trees.blackboard.SetBlackboardVariable(name, config.route_var_name, False))
+        end_sequence.add_child(
+            py_trees.blackboard.SetBlackboardVariable(
+                name, config.route_var_name, False
+            )
+        )
         end_sequence.add_child(WaitForever())  # scenario can't stop the route
 
         return end_sequence
@@ -214,7 +237,8 @@ class BasicScenario(object):
         """
         raise NotImplementedError(
             "This function is re-implemented by all scenarios"
-            "If this error becomes visible the class hierarchy is somehow broken")
+            "If this error becomes visible the class hierarchy is somehow broken"
+        )
 
     def _create_test_criteria(self):
         """
@@ -223,7 +247,8 @@ class BasicScenario(object):
         """
         raise NotImplementedError(
             "This function is re-implemented by all scenarios"
-            "If this error becomes visible the class hierarchy is somehow broken")
+            "If this error becomes visible the class hierarchy is somehow broken"
+        )
 
     def _create_weather_behavior(self):
         """
@@ -289,7 +314,9 @@ class BasicScenario(object):
                     for child in node.children:
                         node_list.append(child)
 
-        if len(node_list) == 1 and isinstance(node_list[0], py_trees.composites.Parallel):
+        if len(node_list) == 1 and isinstance(
+            node_list[0], py_trees.composites.Parallel
+        ):
             return []
 
         return node_list
@@ -320,7 +347,7 @@ class BasicScenario(object):
         """
         Remove all actors
         """
-        if not hasattr(self, 'other_actors'):
+        if not hasattr(self, "other_actors"):
             return
         for i, _ in enumerate(self.other_actors):
             if self.other_actors[i] is not None:

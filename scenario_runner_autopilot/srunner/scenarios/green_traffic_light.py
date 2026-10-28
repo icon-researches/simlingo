@@ -15,7 +15,9 @@ import carla
 
 from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
 from srunner.scenariomanager.scenarioatomics.atomic_behaviors import TrafficLightFreezer
-from srunner.scenariomanager.scenarioatomics.atomic_trigger_conditions import WaitEndIntersection
+from srunner.scenariomanager.scenarioatomics.atomic_trigger_conditions import (
+    WaitEndIntersection,
+)
 from srunner.scenarios.basic_scenario import BasicScenario
 
 
@@ -27,8 +29,16 @@ class PriorityAtJunction(BasicScenario):
 
     timeout = 80  # Timeout of scenario in seconds
 
-    def __init__(self, world, ego_vehicles, config, randomize=False, debug_mode=False, criteria_enable=True,
-                 timeout=80):
+    def __init__(
+        self,
+        world,
+        ego_vehicles,
+        config,
+        randomize=False,
+        debug_mode=False,
+        criteria_enable=True,
+        timeout=80,
+    ):
         """
         Setup all relevant parameters and create scenario
         """
@@ -37,12 +47,14 @@ class PriorityAtJunction(BasicScenario):
         self._tl_dict = {}
 
         self.timeout = timeout
-        super().__init__("PriorityAtJunction",
-                         ego_vehicles,
-                         config,
-                         world,
-                         debug_mode,
-                         criteria_enable=criteria_enable)
+        super().__init__(
+            "PriorityAtJunction",
+            ego_vehicles,
+            config,
+            world,
+            debug_mode,
+            criteria_enable=criteria_enable,
+        )
 
     def _initialize_actors(self, config):
         """
@@ -70,16 +82,24 @@ class PriorityAtJunction(BasicScenario):
         if not tls:
             raise ValueError("No traffic lights found, nothing to do here")
 
-        ego_landmark = self._ego_wp.get_landmarks_of_type(junction_dist + 1, "1000001")[0]
+        ego_landmark = self._ego_wp.get_landmarks_of_type(junction_dist + 1, "1000001")[
+            0
+        ]
         ego_tl = self._world.get_traffic_light(ego_landmark)
         for tl in tls:
-            self._tl_dict[tl] = carla.TrafficLightState.Green if tl.id == ego_tl.id else carla.TrafficLightState.Red
+            self._tl_dict[tl] = (
+                carla.TrafficLightState.Green
+                if tl.id == ego_tl.id
+                else carla.TrafficLightState.Red
+            )
 
     def _create_behavior(self):
         """
         Freeze the traffic lights until the ego has exited the junction
         """
-        root = py_trees.composites.Parallel(policy=py_trees.common.ParallelPolicy.SUCCESS_ON_ONE)
+        root = py_trees.composites.Parallel(
+            policy=py_trees.common.ParallelPolicy.SUCCESS_ON_ONE
+        )
         root.add_child(WaitEndIntersection(self.ego_vehicles[0], self._junction.id))
         root.add_child(TrafficLightFreezer(self._tl_dict))
         return root

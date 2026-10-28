@@ -19,18 +19,17 @@ from leaderboard.envs.sensor_interface import SensorInterface
 
 
 class Track(Enum):
-
     """
     This enum represents the different tracks of the CARLA AD leaderboard.
     """
-    SENSORS = 'SENSORS'
-    MAP = 'MAP'
-    SENSORS_QUALIFIER = 'SENSORS_QUALIFIER'
-    MAP_QUALIFIER = 'MAP_QUALIFIER'
+
+    SENSORS = "SENSORS"
+    MAP = "MAP"
+    SENSORS_QUALIFIER = "SENSORS_QUALIFIER"
+    MAP_QUALIFIER = "MAP_QUALIFIER"
 
 
 class AutonomousAgent(object):
-
     """
     Autonomous agent base class. All user agents have to be derived from this class
     """
@@ -111,10 +110,17 @@ class AutonomousAgent(object):
             self.wallclock_t0 = GameTime.get_wallclocktime()
         wallclock = GameTime.get_wallclocktime()
         wallclock_diff = (wallclock - self.wallclock_t0).total_seconds()
-        sim_ratio = 0 if wallclock_diff == 0 else timestamp/wallclock_diff
+        sim_ratio = 0 if wallclock_diff == 0 else timestamp / wallclock_diff
 
-        print('=== [Agent] -- Wallclock = {} -- System time = {} -- Game time = {} -- Ratio = {}x'.format(
-            str(wallclock)[:-3], format(wallclock_diff, '.3f'), format(timestamp, '.3f'), format(sim_ratio, '.3f')), flush=True)
+        print(
+            "=== [Agent] -- Wallclock = {} -- System time = {} -- Game time = {} -- Ratio = {}x".format(
+                str(wallclock)[:-3],
+                format(wallclock_diff, ".3f"),
+                format(timestamp, ".3f"),
+                format(sim_ratio, ".3f"),
+            ),
+            flush=True,
+        )
 
         control = self.run_step(input_data, timestamp)
         control.manual_gear_shift = False
@@ -131,21 +137,28 @@ class AutonomousAgent(object):
         """
         self.org_dense_route_world_coord = global_plan_world_coord
         ds_ids = downsample_route(global_plan_world_coord, 50)
-        self._global_plan_world_coord = [(global_plan_world_coord[x][0], global_plan_world_coord[x][1]) for x in ds_ids]
+        self._global_plan_world_coord = [
+            (global_plan_world_coord[x][0], global_plan_world_coord[x][1])
+            for x in ds_ids
+        ]
         self._global_plan = [global_plan_gps[x] for x in ds_ids]
         self._plan_gps_HACK = global_plan_gps
-    
+
     def get_hero(self):
         hero_actor = None
         from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
+
         for actor in CarlaDataProvider.get_world().get_actors():
-            if 'role_name' in actor.attributes and actor.attributes['role_name'] == 'hero':
+            if (
+                "role_name" in actor.attributes
+                and actor.attributes["role_name"] == "hero"
+            ):
                 hero_actor = actor
                 break
         self.hero_actor = hero_actor
-    
+
     def get_metric_info(self):
-        
+
         def vector2list(vector, rotation=False):
             if rotation:
                 return [vector.roll, vector.pitch, vector.yaw]
@@ -153,10 +166,16 @@ class AutonomousAgent(object):
                 return [vector.x, vector.y, vector.z]
 
         output = {}
-        output['acceleration'] = vector2list(self.hero_actor.get_acceleration())
-        output['angular_velocity'] = vector2list(self.hero_actor.get_angular_velocity())
-        output['forward_vector'] = vector2list(self.hero_actor.get_transform().get_forward_vector())
-        output['right_vector'] = vector2list(self.hero_actor.get_transform().get_right_vector())
-        output['location'] = vector2list(self.hero_actor.get_transform().location)
-        output['rotation'] = vector2list(self.hero_actor.get_transform().rotation, rotation=True)
+        output["acceleration"] = vector2list(self.hero_actor.get_acceleration())
+        output["angular_velocity"] = vector2list(self.hero_actor.get_angular_velocity())
+        output["forward_vector"] = vector2list(
+            self.hero_actor.get_transform().get_forward_vector()
+        )
+        output["right_vector"] = vector2list(
+            self.hero_actor.get_transform().get_right_vector()
+        )
+        output["location"] = vector2list(self.hero_actor.get_transform().location)
+        output["rotation"] = vector2list(
+            self.hero_actor.get_transform().rotation, rotation=True
+        )
         return output

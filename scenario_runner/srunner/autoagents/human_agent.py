@@ -24,7 +24,7 @@ try:
     from pygame.locals import K_w
     from pygame.locals import K_q
 except ImportError:
-    raise RuntimeError('cannot import pygame, make sure pygame package is installed')
+    raise RuntimeError("cannot import pygame, make sure pygame package is installed")
 
 import carla
 
@@ -32,7 +32,6 @@ from srunner.autoagents.autonomous_agent import AutonomousAgent
 
 
 class HumanInterface(object):
-
     """
     Class to control a vehicle manually for debugging purposes
     """
@@ -45,7 +44,9 @@ class HumanInterface(object):
         pygame.init()
         pygame.font.init()
         self._clock = pygame.time.Clock()
-        self._display = pygame.display.set_mode((self._width, self._height), pygame.HWSURFACE | pygame.DOUBLEBUF)
+        self._display = pygame.display.set_mode(
+            (self._width, self._height), pygame.HWSURFACE | pygame.DOUBLEBUF
+        )
         pygame.display.set_caption("Human Agent")
 
     def run_interface(self, input_data):
@@ -53,7 +54,7 @@ class HumanInterface(object):
         Run the GUI
         """
         # process sensor data
-        image_center = input_data['Center'][1][:, :, -2::-1]
+        image_center = input_data["Center"][1][:, :, -2::-1]
 
         # display image
         self._surface = pygame.surfarray.make_surface(image_center.swapaxes(0, 1))
@@ -69,7 +70,6 @@ class HumanInterface(object):
 
 
 class HumanAgent(AutonomousAgent):
-
     """
     Human agent to control the ego vehicle via keyboard
     """
@@ -110,10 +110,22 @@ class HumanAgent(AutonomousAgent):
         ]
 
         """
-        sensors = [{'type': 'sensor.camera.rgb', 'x': 0.7, 'y': 0.0, 'z': 1.60, 'roll': 0.0, 'pitch': 0.0, 'yaw': 0.0,
-                    'width': self.camera_width, 'height': self.camera_height, 'fov': 100, 'id': 'Center'},
-                   {'type': 'sensor.other.gnss', 'x': 0.7, 'y': -0.4, 'z': 1.60, 'id': 'GPS'}
-                   ]
+        sensors = [
+            {
+                "type": "sensor.camera.rgb",
+                "x": 0.7,
+                "y": 0.0,
+                "z": 1.60,
+                "roll": 0.0,
+                "pitch": 0.0,
+                "yaw": 0.0,
+                "width": self.camera_width,
+                "height": self.camera_height,
+                "fov": 100,
+                "id": "Center",
+            },
+            {"type": "sensor.other.gnss", "x": 0.7, "y": -0.4, "z": 1.60, "id": "GPS"},
+        ]
 
         return sensors
 
@@ -137,7 +149,6 @@ class HumanAgent(AutonomousAgent):
 
 
 class KeyboardControl(object):
-
     """
     Keyboard control for the human agent
     """
@@ -153,14 +164,14 @@ class KeyboardControl(object):
         # Get the mode
         if path_to_conf_file:
 
-            with (open(path_to_conf_file, "r")) as f:
+            with open(path_to_conf_file, "r") as f:
                 lines = f.read().split("\n")
                 self._mode = lines[0].split(" ")[1]
                 self._endpoint = lines[1].split(" ")[1]
 
             # Get the needed vars
             if self._mode == "log":
-                self._log_data = {'records': []}
+                self._log_data = {"records": []}
 
             elif self._mode == "playback":
                 self._index = 0
@@ -183,14 +194,16 @@ class KeyboardControl(object):
         """
 
         # transform strs into VehicleControl commands
-        for entry in self._records['records']:
-            control = carla.VehicleControl(throttle=entry['control']['throttle'],
-                                           steer=entry['control']['steer'],
-                                           brake=entry['control']['brake'],
-                                           hand_brake=entry['control']['hand_brake'],
-                                           reverse=entry['control']['reverse'],
-                                           manual_gear_shift=entry['control']['manual_gear_shift'],
-                                           gear=entry['control']['gear'])
+        for entry in self._records["records"]:
+            control = carla.VehicleControl(
+                throttle=entry["control"]["throttle"],
+                steer=entry["control"]["steer"],
+                brake=entry["control"]["brake"],
+                hand_brake=entry["control"]["hand_brake"],
+                reverse=entry["control"]["reverse"],
+                manual_gear_shift=entry["control"]["manual_gear_shift"],
+                gear=entry["control"]["gear"],
+            )
             self._control_list.append(control)
 
     def parse_events(self, timestamp):
@@ -256,18 +269,18 @@ class KeyboardControl(object):
         """
 
         new_record = {
-            'control': {
-                'throttle': self._control.throttle,
-                'steer': self._control.steer,
-                'brake': self._control.brake,
-                'hand_brake': self._control.hand_brake,
-                'reverse': self._control.reverse,
-                'manual_gear_shift': self._control.manual_gear_shift,
-                'gear': self._control.gear
+            "control": {
+                "throttle": self._control.throttle,
+                "steer": self._control.steer,
+                "brake": self._control.brake,
+                "hand_brake": self._control.hand_brake,
+                "reverse": self._control.reverse,
+                "manual_gear_shift": self._control.manual_gear_shift,
+                "gear": self._control.gear,
             }
         }
 
-        self._log_data['records'].append(new_record)
+        self._log_data["records"].append(new_record)
 
     def __del__(self):
         """
@@ -275,5 +288,5 @@ class KeyboardControl(object):
         """
         # Get ready to log user commands
         if self._mode == "log" and self._log_data:
-            with open(self._endpoint, 'w') as fd:
+            with open(self._endpoint, "w") as fd:
                 json.dump(self._log_data, fd, indent=4, sort_keys=True)

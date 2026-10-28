@@ -4,6 +4,7 @@ import time
 
 from hydra.core.config_store import ConfigStore
 
+
 @dataclass
 class LLaVAnextEncoderConfig:
     variant: str = "llava-hf/llava-v1.6-mistral-7b-hf"
@@ -12,11 +13,14 @@ class LLaVAnextEncoderConfig:
     downsample_feature_grid_factor: Optional[int] = 2
     use_global_img: bool = False
 
-    _target_: str = "simlingo_base_training.models.encoder.llavanext.LLaVAnextEncoderModel"
+    _target_: str = (
+        "simlingo_base_training.models.encoder.llavanext.LLaVAnextEncoderModel"
+    )
+
 
 @dataclass
 class ResnetEncoderConfig:
-    variant: str = 'microsoft/resnet-34'
+    variant: str = "microsoft/resnet-34"
     embed_dim: int = 512
     freeze: bool = False
     downsample_feature_grid_factor: Optional[int] = 2
@@ -43,7 +47,7 @@ class DrivingModelConfig:
     weight_decay: float = 0.1
     betas: Tuple[float, float] = (0.9, 0.999)
     pct_start: float = 0.05
-    speed_wps_mode: str = '2d'
+    speed_wps_mode: str = "2d"
     predict_route_as_wps: bool = False
     speed_as_input: bool = True
     new_layer_norm_minmax: bool = False
@@ -57,28 +61,30 @@ class DrivingDataModuleConfig:
     num_workers: int = 10
     data_path: str = "database/simlingo"
     bucket_path: str = "database/bucketsv2_simlingo"
-    encoder: str = "llavanext" # "resnet"
+    encoder: str = "llavanext"  # "resnet"
     train_partitions: Optional[Dict[str, float]] = None
     cut_bottom_quarter: bool = False
 
     use_global_img: bool = False
 
     skip_first_n_frames: int = 10
-    pred_len: int = 11 # including the current time step
-    hist_len: int = 3 # including the current time step
+    pred_len: int = 11  # including the current time step
+    hist_len: int = 3  # including the current time step
 
     image_enhancing: bool = False
     img_augmentation: bool = True
     img_augmentation_prob: float = 0.5
     img_shift_augmentation: bool = True
-    img_shift_augmentation_prob: float = 0.5 # 80% of the data that conains augmented views -> only a small portion of the dataset contains augmented views
-    
+    img_shift_augmentation_prob: float = (
+        0.5  # 80% of the data that conains augmented views -> only a small portion of the dataset contains augmented views
+    )
+
     num_route_points: int = 20
 
     use_town13: bool = True
     use_old_towns: bool = True
 
-    route_as: str = 'target_point' # coords, image, target_point
+    route_as: str = "target_point"  # coords, image, target_point
     _target_: str = "simlingo_base_training.dataloader.datamodule.DataModule"
 
 
@@ -93,11 +99,12 @@ class TrainConfig:
     resume: bool = False
     resume_path: Optional[str] = None
 
-
     debug: bool = False
     overfit: int = 0
     submit: bool = True  # whether to checkpoint and submit the model during training
-    fp16_loss_scale: float = 32.0 # 0.0 means dynamic loss scaling, only used with deepspeed
+    fp16_loss_scale: float = (
+        32.0  # 0.0 means dynamic loss scaling, only used with deepspeed
+    )
 
     enable_wandb: bool = True
     wandb_project: Optional[str] = "simlingo_base"
@@ -108,12 +115,11 @@ class TrainConfig:
         # wandb_name: Optional[str] = f"debug"
         name: Optional[str] = "test"
         wandb_name: Optional[str] = f"{time.strftime('%Y_%m_%d_%H_%M_%S')}"
-    
 
     # max_steps: int = 100_000
     max_epochs: int = 20
     precision: str = "16-mixed"
-    strategy: str = "deepspeed_stage_2" # deepspeed_stage_2 ddp
+    strategy: str = "deepspeed_stage_2"  # deepspeed_stage_2 ddp
     accumulate_grad_batches: int = 1
     devices: Union[str, int] = "auto"
     # val_check_interval: int = 5000

@@ -2,6 +2,7 @@ from typing import Dict, List, NamedTuple, Optional, Tuple, TypedDict
 import torch
 from torch import Tensor
 
+
 class DatasetOutput(NamedTuple):
     conversation: Optional[list]
     answer: Optional[str]
@@ -18,6 +19,7 @@ class DatasetOutput(NamedTuple):
     qa_templates: Optional[Tuple[str, str]] = None
     eval_infos: Optional[Dict] = None
 
+
 class LanguageLabel(NamedTuple):
     phrase_ids: Tensor  # [B, max(len(tokens))] int64
     phrase_valid: Tensor  # [B, max(len(tokens))] bool, valid, true => is fed into model
@@ -26,11 +28,13 @@ class LanguageLabel(NamedTuple):
     language_string: list
     loss_masking: Tensor
 
+
 class DrivingOutput(NamedTuple):
     waypoints: Tensor  # [B, F, 2] float32
     # Auxiliary outputs (MUST be at the end):
     language_tokens: Tensor  # [B, max(len(tokens))]
     trajectory_tokens: Tensor  # [B, F, max(len(tokens))]
+
 
 class TrainingOutput(NamedTuple):
     loss: Tensor  # [] floating
@@ -40,8 +44,11 @@ class TrainingOutput(NamedTuple):
 
     driving_output: Optional[DrivingOutput] = None
 
+
 class DrivingInput(NamedTuple):
-    camera_images: torch.Tensor  # [B, T, N, C, H, W] uint8 [0, 255]  ff, fl ,fr, 2048 x 1280
+    camera_images: (
+        torch.Tensor
+    )  # [B, T, N, C, H, W] uint8 [0, 255]  ff, fl ,fr, 2048 x 1280
     image_sizes: torch.Tensor
     camera_intrinsics: torch.Tensor  # [B, N, 3, 3] float32
     camera_extrinsics: torch.Tensor  # [B, N, 4, 4] float32
@@ -50,12 +57,14 @@ class DrivingInput(NamedTuple):
     prompt: LanguageLabel
     prompt_inference: LanguageLabel
 
+
 class DrivingLabel(NamedTuple):
     waypoints: Tensor  # [B, F, 2] 11 future waypoints 0.2s apart
-    path: Tensor 
+    path: Tensor
     answer: LanguageLabel
     image_ff_org: Tensor
     eval_infos: Optional[Dict] = None
+
 
 class DrivingExample(NamedTuple):
     driving_input: DrivingInput
