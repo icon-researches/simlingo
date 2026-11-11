@@ -15,6 +15,8 @@ from torch.nn import functional as F
 import torch
 from torch import Tensor, nn
 
+from simlingo_training.models.internvl2_loading import load_internvl2_model
+
 CONFIGS: Dict[str, Dict[str, Any]] = {
     "debug": dict(
         num_hidden_layers=2, num_attention_heads=2, hidden_size=32, intermediate_size=64
@@ -160,7 +162,7 @@ class LLM(nn.Module):
             self.model = self.model.language_model
             self.model.embed_tokens = self.model.base_model.embed_tokens
         elif "internvl" in self.variant.lower():
-            self.model = AutoModel.from_pretrained(self.variant, trust_remote_code=True)
+            self.model = load_internvl2_model(self.variant)
             self.model = self.model.language_model
             try:
                 self.model.embed_tokens = self.model.base_model.embed_tokens

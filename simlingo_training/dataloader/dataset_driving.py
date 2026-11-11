@@ -11,7 +11,6 @@ import numpy as np
 import random
 import cv2
 import re
-import gzip
 
 import torch
 from simlingo_training.utils.custom_types import DatasetOutput
@@ -104,9 +103,8 @@ class Data_Driving(BaseDataset):  # pylint: disable=locally-disabled, invalid-na
                 commentary_exists = False
             else:
                 try:
-                    with gzip.open(commentary_file_path, "rt") as f:
-                        commentary_file = ujson.load(f)
-                        commentary_exists = True
+                    commentary_file = self.read_json(commentary_file_path)
+                    commentary_exists = True
                 except (FileNotFoundError, ujson.JSONDecodeError):
                     commentary_exists = False
                     commentary_file = None
@@ -149,8 +147,7 @@ class Data_Driving(BaseDataset):  # pylint: disable=locally-disabled, invalid-na
                 qa_exists = False
             else:
                 try:
-                    with gzip.open(qa_path, "rt") as f:
-                        qa = ujson.load(f)
+                    qa = self.read_json(qa_path)
                     qa_exists = True
                 except (FileNotFoundError, ujson.JSONDecodeError):
                     qa_exists = False

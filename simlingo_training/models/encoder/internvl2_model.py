@@ -1,13 +1,13 @@
 import torch
 from torch import nn
 from typing import List, Optional
-from transformers import AutoModel
+from simlingo_training.models.internvl2_loading import load_internvl2_model
 
 
 class LingoInternVLModel(nn.Module):
     def __init__(self, variant, *args, **kwargs):
         super().__init__()
-        self.model = AutoModel.from_pretrained(variant, trust_remote_code=True)
+        self.model = load_internvl2_model(variant)
         try:
             self.num_embeddings = (
                 self.model.language_model.model.embed_tokens.num_embeddings

@@ -9,7 +9,6 @@ import numpy as np
 import random
 import cv2
 import re
-import gzip
 
 from simlingo_training.utils.custom_types import DatasetOutput
 from simlingo_training.dataloader.dataset_base import BaseDataset
@@ -95,9 +94,8 @@ class Data_Eval(BaseDataset):  # pylint: disable=locally-disabled, invalid-name
                 "data/", "commentary/"
             )  # TODO: move to config
             try:
-                with gzip.open(commentary_file_path, "rt") as f:
-                    commentary_file = ujson.load(f)
-                    commentary_exists = True
+                commentary_file = self.read_json(commentary_file_path)
+                commentary_exists = True
             except (FileNotFoundError, ujson.JSONDecodeError):
                 commentary_exists = False
                 commentary_file = None
@@ -138,8 +136,7 @@ class Data_Eval(BaseDataset):  # pylint: disable=locally-disabled, invalid-name
                 "data/", "drivelm/"
             )
             try:
-                with gzip.open(qa_path, "rt") as f:
-                    qa = ujson.load(f)
+                qa = self.read_json(qa_path)
                 qa_exists = True
             except (FileNotFoundError, ujson.JSONDecodeError):
                 qa_exists = False

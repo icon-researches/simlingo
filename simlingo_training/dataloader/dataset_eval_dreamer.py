@@ -5,11 +5,9 @@ partially taken from https://github.com/autonomousvision/carla_garage/blob/main/
 """
 
 import os
-import ujson
 import numpy as np
 import random
 import cv2
-import gzip
 
 import torch
 from simlingo_training.utils.custom_types import DatasetOutput
@@ -89,8 +87,7 @@ class Eval_Dreamer(BaseDataset):  # pylint: disable=locally-disabled, invalid-na
         ################## get alternatives ##################
         ######################################################
         alternative_file = str(alternative_trajectories, encoding="utf-8")
-        with gzip.open(alternative_file, "rt") as f1:
-            alternative_trajectories = ujson.load(f1)
+        alternative_trajectories = self.read_json(alternative_file)
 
         options = []
         for key, option in alternative_trajectories.items():

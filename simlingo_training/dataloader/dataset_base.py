@@ -462,6 +462,23 @@ class BaseDataset(
         """Returns the length of the dataset."""
         return self.images.shape[0]
 
+    def read_json(self, path):
+        """Read one gzip-compressed sample record; subclasses may change storage."""
+        with gzip.open(path, "rt") as stream:
+            return ujson.load(stream)
+
+    def read_measurement(self, path, *, future=False):
+        """Read a measurement; future frames only supply poses to waypoint loading."""
+        return self.read_json(path)
+
+    def image_exists(self, path):
+        """Whether a sample image exists in the backing store."""
+        return os.path.isfile(path)
+
+    def read_image(self, path):
+        """Read a BGR image before augmentation, cropping or colour conversion."""
+        return cv2.imread(path, cv2.IMREAD_COLOR)
+
     def load_current_and_future_measurements(self, measurements, sample_start):
         loaded_measurements = []
 
@@ -475,8 +492,7 @@ class BaseDataset(
                 f"/{(sample_start + i):04}.json.gz"
             )
 
-            with gzip.open(measurement_file, "rt") as f1:
-                measurements_i = ujson.load(f1)
+            measurements_i = self.read_measurement(measurement_file)
             loaded_measurements.append(measurements_i)
 
         end = self.pred_len + self.hist_len
@@ -488,8 +504,7 @@ class BaseDataset(
                     f"/{(sample_start + i):04}.json.gz"
                 )
 
-                with gzip.open(measurement_file, "rt") as f1:
-                    measurements_i = ujson.load(f1)
+                measurements_i = self.read_measurement(measurement_file, future=True)
                 loaded_measurements.append(measurements_i)
             except FileNotFoundError:
                 # If the file is not found, we just use the last available measurement
@@ -587,11 +602,11 @@ class BaseDataset(
             if augment_sample:
                 images_path = images_path.replace("rgb", "rgb_augmented")
 
-            if not os.path.isfile(images_path):
+            if not self.image_exists(images_path):
                 print(f"File not found: {images_path}")
                 raise FileNotFoundError
 
-            images_i = cv2.imread(images_path, cv2.IMREAD_COLOR)
+            images_i = self.read_image(images_path)
             images_i = cv2.cvtColor(images_i, cv2.COLOR_BGR2RGB)
 
             if (
