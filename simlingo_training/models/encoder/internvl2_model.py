@@ -64,7 +64,7 @@ class LingoInternVLModel(nn.Module):
             input_ids = adaptor_dict["language__ids"]
 
             # 2a replace placeholder
-            smallest_added_id = self.tokenizer.additional_special_tokens_ids[0]
+            smallest_added_id = self.tokenizer.extra_special_tokens_ids[0]
             special_ids = torch.tensor(
                 list(set(input_ids[(input_ids >= smallest_added_id)].tolist())),
                 device=input_ids.device,
