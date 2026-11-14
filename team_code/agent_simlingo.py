@@ -1,6 +1,9 @@
 """
 partially taken from https://github.com/autonomousvision/carla_garage/blob/leaderboard_2/team_code/sensor_agent.py
 (MIT licence)
+
+Sensor GNSS requires matching CARLA 0.9.16 clients and servers.
+Navigation-plan GPS retains the bundled leaderboard's legacy projection.
 """
 
 import importlib.util
@@ -28,15 +31,14 @@ from leaderboard.autoagents import autonomous_agent
 from omegaconf import OmegaConf
 from PIL import Image, ImageDraw, ImageFont
 from scipy.interpolate import PchipInterpolator
-from scipy.optimize import fsolve
 from transformers import AutoConfig, AutoProcessor
+from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
 
-import scenario_logger
 import team_code.transfuser_utils as t_u
-from scenario_logger import ScenarioLogger
 from simlingo_training.utils.custom_types import DrivingInput, LanguageLabel
 from simlingo_training.utils.internvl2_utils import build_transform, dynamic_preprocess
 from team_code.config_simlingo import GlobalConfig
+from team_code.gnss import gnss_to_world, gps_reference
 from team_code.nav_planner import LateralPIDController, RoutePlanner
 from team_code.simlingo_utils import (
     get_camera_extrinsics,
@@ -240,6 +242,8 @@ class LingoAgent(autonomous_agent.AutonomousAgent):
 
         # Logger that generates logs used for infraction replay in the results_parser.
         if self.save_path is not None and route_index is not None:
+            from team_code.scenario_logger import ScenarioLogger
+
             self.save_path = pathlib.Path(self.save_path) / route_index
             pathlib.Path(self.save_path).mkdir(parents=True, exist_ok=True)
 
@@ -295,46 +299,23 @@ class LingoAgent(autonomous_agent.AutonomousAgent):
             print(f"User flag: {self.user_flag}")
 
     def _init(self):
-        # The CARLA leaderboard does not expose the lat lon reference value of the GPS which make it impossible to use the
-        # GPS because the scale is not known. In the past this was not an issue since the reference was constant 0.0
-        # But town 13 has a different value in CARLA 0.9.15. The following code, adapted from Bench2DriveZoo estimates the
-        # lat, lon reference values by abusing the fact that the leaderboard exposes the route plan also in CARLA
-        # coordinates. The GPS plan is compared to the CARLA coordinate plan to estimate the reference point / scale
-        # of the GPS. It seems to work reasonably well, so we use this workaround for now.
-        try:
-            locx, locy = (
-                self._global_plan_world_coord[0][0].location.x,
-                self._global_plan_world_coord[0][0].location.y,
+        client = CarlaDataProvider.get_client()
+        client_version = client.get_client_version()
+        server_version = client.get_server_version()
+        if client_version != server_version:
+            raise RuntimeError(
+                f"CARLA client/server mismatch: {client_version} / {server_version}"
             )
-            lon, lat = self._global_plan[0][0]["lon"], self._global_plan[0][0]["lat"]
-            earth_radius_equa = (
-                6378137.0  # Constant from CARLA leaderboard GPS simulation
-            )
+        if client_version != "0.9.16":
+            raise RuntimeError("This agent's GNSS projection requires CARLA 0.9.16")
 
-            def equations(variables):
-                x, y = variables
-                eq1 = (
-                    lon * math.cos(x * math.pi / 180.0)
-                    - (locx * x * 180.0) / (math.pi * earth_radius_equa)
-                    - math.cos(x * math.pi / 180.0) * y
-                )
-                eq2 = (
-                    math.log(math.tan((lat + 90.0) * math.pi / 360.0))
-                    * earth_radius_equa
-                    * math.cos(x * math.pi / 180.0)
-                    + locy
-                    - math.cos(x * math.pi / 180.0)
-                    * earth_radius_equa
-                    * math.log(math.tan((90.0 + x) * math.pi / 360.0))
-                )
-                return [eq1, eq2]
-
-            initial_guess = [0.0, 0.0]
-            solution = fsolve(equations, initial_guess)
-            self.lat_ref, self.lon_ref = solution[0], solution[1]
-        except Exception as e:
-            print(e, flush=True)
-            self.lat_ref, self.lon_ref = 0.0, 0.0
+        # The supplied navigation plan still uses legacy Mercator.
+        # Recover its reference without querying the map or the ego actor.
+        gps = self._global_plan[0][0]
+        location = self._global_plan_world_coord[0][0].location
+        self.lat_ref, self.lon_ref = gps_reference(
+            [gps["lat"], gps["lon"], gps["z"]], [location.x, location.y]
+        )
         self._route_planner = RoutePlanner(
             self.route_planner_min_distance,
             self.route_planner_max_distance,
@@ -484,7 +465,11 @@ class LingoAgent(autonomous_agent.AutonomousAgent):
                 f"Encoder {self.cfg.data_module.encoder} not implemented yet"
             )
 
-        gps_pos = self._route_planner.convert_gps_to_carla(input_data["gps"][1])
+        gps_pos = gnss_to_world(
+            input_data["gps"][1],
+            self.lat_ref,
+            self.lon_ref,
+        )
 
         compass = t_u.preprocess_compass(input_data["imu"][1][-1])
 

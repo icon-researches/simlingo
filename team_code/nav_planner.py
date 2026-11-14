@@ -15,6 +15,7 @@ import time
 from scipy.spatial import cKDTree
 
 from agents.navigation.global_route_planner import GlobalRoutePlanner
+from team_code.gnss import gps_to_world
 
 
 class PIDController(object):
@@ -227,33 +228,13 @@ class RoutePlanner(object):
         # self.scale = np.array([111319.49082349832, 111319.49079327358, 1.0]) # previously: [111324.60662786, 111319.490945]
 
     def convert_gps_to_carla(self, gps):
-        """
-        Converts GPS signal into the CARLA coordinate frame
-        :param gps: gps from gnss sensor
+        """Convert legacy navigation GPS, not CARLA 0.9.16 sensor GNSS.
+
+        Use team_code.gnss.gnss_to_world for sensor measurements.
+        :param gps: GPS from the bundled leaderboard's navigation plan
         :return: gps as numpy array in CARLA coordinates
         """
-        #   gps = (gps - self.mean) * self.scale
-        #   # GPS uses a different coordinate system than CARLA.
-        #   # This converts from GPS -> CARLA (90° rotation)
-        #   gps = np.array([gps[1], -gps[0], gps[2]])
-
-        EARTH_RADIUS_EQUA = 6378137.0  # Constant from CARLA leaderboard GPS simulation
-        lat, lon, _ = gps
-        scale = math.cos(self.lat_ref * math.pi / 180.0)
-        my = math.log(math.tan((lat + 90) * math.pi / 360.0)) * (
-            EARTH_RADIUS_EQUA * scale
-        )
-        mx = (lon * (math.pi * EARTH_RADIUS_EQUA * scale)) / 180.0
-        y = (
-            scale
-            * EARTH_RADIUS_EQUA
-            * math.log(math.tan((90.0 + self.lat_ref) * math.pi / 360.0))
-            - my
-        )
-        x = mx - scale * self.lon_ref * math.pi * EARTH_RADIUS_EQUA / 180.0
-        gps = np.array([x, y, gps[2]])
-
-        return gps
+        return gps_to_world(gps, self.lat_ref, self.lon_ref)
 
     def set_route(self, global_plan, gps=False, carla_map=None):
         self.route.clear()

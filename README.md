@@ -199,6 +199,12 @@ With the default config, the training logs to Wandb. Login is required. We also 
 
 ## Evaluation
 
+> Note: breaking changes in this fork
+
+The driving agent requires matching CARLA 0.9.16 clients and servers. Sensor GNSS uses spherical transverse Mercator, while the bundled leaderboard's navigation-plan GPS still uses legacy Mercator.
+These conversions live in `team_code/gnss.py`; changing the route GPS formula to match 0.9.16 sensors that would break the navigation planner.
+The original installation instructions and published benchmark results refer to CARLA 0.9.15.
+
 The model file can be downloaded from huggingface: https://huggingface.co/RenzKa/simlingo.
 If you only want to perfrom closed-loop driving evaluation, there is no need to download our dataset.
 
